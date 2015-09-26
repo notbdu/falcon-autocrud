@@ -98,7 +98,7 @@ class SingleResource(object):
 
     def on_put(self, req, resp, *args, **kwargs):
         """
-        Add an item to the collection.
+        Update an item in the collection.
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
