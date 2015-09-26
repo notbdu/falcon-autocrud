@@ -41,7 +41,7 @@ class AutoCRUDTest(unittest.TestCase):
         self.db_session = Session(bind=db_engine)
 
         self.app.add_route('/employees', EmployeeCollectionResource(self.db_session))
-        self.app.add_route('/employees/{employee_id}', EmployeeResource(self.db_session))
+        self.app.add_route('/employees/{id}', EmployeeResource(self.db_session))
 
         create_sql = """
             CREATE TABLE employees (
@@ -96,4 +96,37 @@ class AutoCRUDTest(unittest.TestCase):
                     }
                 ]
             }
+        )
+
+    def test_single_get(self):
+        self.db_session.add(Employee(name="Jim"))
+        self.db_session.add(Employee(name="Bob"))
+
+        response, = self.simulate_request('/employees/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   1,
+                    'name': 'Jim',
+                },
+            }
+        )
+
+        response, = self.simulate_request('/employees/2', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   2,
+                    'name': 'Bob',
+                },
+            }
+        )
+
+        response, = self.simulate_request('/employees/3', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '404 Not Found')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {'data': None}
         )

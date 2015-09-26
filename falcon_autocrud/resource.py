@@ -34,3 +34,33 @@ class SingleResource(object):
     """
     def __init__(self, db_session):
         self.db_session = db_session
+
+    def serialize(self, resource):
+        return {
+            attr: getattr(resource, attr) for attr in inspect(self.model).attrs.keys()
+        }
+
+    def on_get(self, req, resp, *args, **kwargs):
+        """
+        Return a single item.
+        """
+        resources = self.db_session.query(self.model)
+        for key, value in kwargs.items():
+            resources = resources.filter(
+                getattr(self.model, key) == value
+            )
+        if resources.count() == 0:
+            resp.status = falcon.HTTP_NOT_FOUND
+            req.context['result'] = {
+                'data': None,
+            }
+            return
+        elif resources.count() > 1:
+            resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
+            req.context['result'] = None
+            return
+
+        resource = resources[0]
+        req.context['result'] = {
+            'data': self.serialize(resource),
+        }
