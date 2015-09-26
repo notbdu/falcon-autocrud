@@ -21,5 +21,8 @@ setup(name='falcon-autocrud',
       keywords='falcon crud rest database',
       packages=['falcon_autocrud'],
       install_requires=[
+          'falcon',
+          'falconjsonio',
+          'sqlalchemy',
       ],
       zip_safe=False)
