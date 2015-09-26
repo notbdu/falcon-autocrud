@@ -36,6 +36,29 @@ class CollectionResource(object):
             ],
         }
 
+    def on_post(self, req, resp, *args, **kwargs):
+        """
+        Add an item to the collection.
+        """
+        args = {}
+        for key, value in kwargs.items():
+            args[key] = value
+        for key, value in req.context['doc'].items():
+            args[key] = value
+        resource = self.model(**args)
+
+        self.db_session.add(resource)
+        try:
+            self.db_session.commit()
+        except:
+            self.db_session.rollback()
+            raise
+
+        resp.status = falcon.HTTP_CREATED
+        req.context['result'] = {
+            'data': self.serialize(resource),
+        }
+
 class SingleResource(object):
     """
     Provides CRUD facilities for a single resource.
