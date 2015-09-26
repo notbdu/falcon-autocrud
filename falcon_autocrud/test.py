@@ -67,6 +67,7 @@ class AutoCRUDTest(unittest.TestCase):
 
     def test_entire_collection(self):
         self.db_session.add(Employee(name="Jim"))
+        self.db_session.commit()
 
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(
@@ -82,6 +83,7 @@ class AutoCRUDTest(unittest.TestCase):
         )
 
         self.db_session.add(Employee(name="Bob"))
+        self.db_session.commit()
 
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(
@@ -171,6 +173,7 @@ class AutoCRUDTest(unittest.TestCase):
     def test_single_get(self):
         self.db_session.add(Employee(name="Jim"))
         self.db_session.add(Employee(name="Bob"))
+        self.db_session.commit()
 
         response, = self.simulate_request('/employees/1', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(
@@ -204,6 +207,7 @@ class AutoCRUDTest(unittest.TestCase):
     def test_subcollection(self):
         self.db_session.add(Employee(name="Jim"))
         self.db_session.add(Employee(name="Bob"))
+        self.db_session.commit()
 
         response, = self.simulate_request('/employees', query_string='name=Jim', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(
