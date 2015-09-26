@@ -1,4 +1,6 @@
-# Falcon-autoCRUD
+# Falcon-AutoCRUD
+
+Makes RESTful CRUD easier.
 
 ## Quick start for contributing
 
