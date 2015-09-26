@@ -132,3 +132,40 @@ class SingleResource(object):
         req.context['result'] = {
             'data': self.serialize(resource),
         }
+
+    def on_patch(self, req, resp, *args, **kwargs):
+        """
+        Update part of an item in the collection.
+        """
+        resources = self.db_session.query(self.model)
+        for key, value in kwargs.items():
+            resources = resources.filter(
+                getattr(self.model, key) == value
+            )
+        if resources.count() == 0:
+            resp.status = falcon.HTTP_NOT_FOUND
+            req.context['result'] = {
+                'data': None,
+            }
+            return
+        elif resources.count() > 1:
+            resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
+            req.context['result'] = None
+            return
+
+        resource = resources[0]
+
+        for key, value in req.context['doc'].items():
+            setattr(resource, key, value)
+
+        self.db_session.add(resource)
+        try:
+            self.db_session.commit()
+        except:
+            self.db_session.rollback()
+            raise
+
+        resp.status = falcon.HTTP_OK
+        req.context['result'] = {
+            'data': self.serialize(resource),
+        }

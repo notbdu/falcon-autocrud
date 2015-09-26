@@ -170,6 +170,44 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+    def test_patch_resource(self):
+        self.db_session.add(Employee(name="Jim"))
+        self.db_session.add(Employee(name="Bob"))
+        self.db_session.commit()
+
+        body = json.dumps({
+            'name': 'Alfred'
+        })
+        response, = self.simulate_request('/employees/1', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   1,
+                    'name': 'Alfred',
+                },
+            }
+        )
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Alfred',
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                    },
+                ]
+            }
+        )
+
     def test_single_get(self):
         self.db_session.add(Employee(name="Jim"))
         self.db_session.add(Employee(name="Bob"))
