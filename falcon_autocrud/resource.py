@@ -20,6 +20,14 @@ class CollectionResource(object):
         Return a collection of items.
         """
         resources = self.db_session.query(self.model)
+        for key, value in kwargs.items():
+            resources = resources.filter(
+                getattr(self.model, key) == value
+            )
+        for key, value in req.params.items():
+            resources = resources.filter(
+                getattr(self.model, key) == value
+            )
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {

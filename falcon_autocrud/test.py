@@ -130,3 +130,59 @@ class AutoCRUDTest(unittest.TestCase):
             json.loads(response.decode('utf-8')),
             {'data': None}
         )
+
+    def test_subcollection(self):
+        self.db_session.add(Employee(name="Jim"))
+        self.db_session.add(Employee(name="Bob"))
+
+        response, = self.simulate_request('/employees', query_string='name=Jim', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                    },
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='name=Bob', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                    }
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='id=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                    },
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='id=2', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                    }
+                ]
+            }
+        )
