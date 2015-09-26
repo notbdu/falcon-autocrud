@@ -7,7 +7,7 @@ except (IOError, ImportError):
     long_description = open('README.md').read()
 
 setup(name='falcon-autocrud',
-      version='0.0.1',
+      version='0.0.2',
       description='Makes RESTful CRUD easier',
       long_description=long_description,
       url='https://bitbucket.org/garymonson/falcon-autocrud',
