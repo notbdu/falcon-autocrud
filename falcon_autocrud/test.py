@@ -1,10 +1,11 @@
+from datetime import datetime
 import falconjsonio.middleware, falconjsonio.schema
 import falcon, falcon.testing
 import json
 import tempfile
 import unittest
 from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, DateTime, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
 from .resource import CollectionResource, SingleResource
@@ -16,6 +17,7 @@ class Employee(Base):
     __tablename__ = 'employees'
     id      = Column(Integer, primary_key=True)
     name    = Column(String(50))
+    joined  = Column(DateTime())
 
 class EmployeeCollectionResource(CollectionResource):
     model = Employee
@@ -46,7 +48,8 @@ class AutoCRUDTest(unittest.TestCase):
         create_sql = """
             CREATE TABLE employees (
                 id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                name    TEXT NOT NULL
+                name    TEXT NOT NULL,
+                joined  DATETIME NOT NULL
             );
         """
         result = self.db_session.execute(create_sql)
@@ -66,7 +69,8 @@ class AutoCRUDTest(unittest.TestCase):
         )
 
     def test_entire_collection(self):
-        self.db_session.add(Employee(name="Jim"))
+        now = datetime.utcnow()
+        self.db_session.add(Employee(name="Jim", joined=now))
         self.db_session.commit()
 
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
@@ -77,12 +81,13 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   1,
                         'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                 ]
             }
         )
 
-        self.db_session.add(Employee(name="Bob"))
+        self.db_session.add(Employee(name="Bob", joined=now))
         self.db_session.commit()
 
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
@@ -93,18 +98,22 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   1,
                         'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     }
                 ]
             }
         )
 
     def test_add_resource(self):
+        now = datetime.utcnow()
         body = json.dumps({
-            'name': 'Alfred'
+            'name': 'Alfred',
+            'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
         })
         response, = self.simulate_request('/employees', method='POST', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '201 Created')
@@ -114,6 +123,7 @@ class AutoCRUDTest(unittest.TestCase):
                 'data': {
                     'id':   1,
                     'name': 'Alfred',
+                    'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 },
             }
         )
@@ -127,18 +137,21 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   1,
                         'name': 'Alfred',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                 ]
             }
         )
 
     def test_put_resource(self):
-        self.db_session.add(Employee(name="Jim"))
-        self.db_session.add(Employee(name="Bob"))
+        now = datetime.utcnow()
+        self.db_session.add(Employee(name="Jim", joined=now))
+        self.db_session.add(Employee(name="Bob", joined=now))
         self.db_session.commit()
 
         body = json.dumps({
-            'name': 'Alfred'
+            'name':     'Alfred',
+            'joined':   '2015-11-01T09:30:12Z',
         })
         response, = self.simulate_request('/employees/1', method='PUT', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '200 OK')
@@ -148,6 +161,7 @@ class AutoCRUDTest(unittest.TestCase):
                 'data': {
                     'id':   1,
                     'name': 'Alfred',
+                    'joined': '2015-11-01T09:30:12Z',
                 },
             }
         )
@@ -161,22 +175,26 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   1,
                         'name': 'Alfred',
+                        'joined': '2015-11-01T09:30:12Z',
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                 ]
             }
         )
 
     def test_patch_resource(self):
-        self.db_session.add(Employee(name="Jim"))
-        self.db_session.add(Employee(name="Bob"))
+        now = datetime.utcnow()
+        self.db_session.add(Employee(name="Jim", joined=now))
+        self.db_session.add(Employee(name="Bob", joined=now))
         self.db_session.commit()
 
         body = json.dumps({
-            'name': 'Alfred'
+            'name': 'Alfred',
+            'joined': '2015-11-01T09:30:12Z',
         })
         response, = self.simulate_request('/employees/1', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '200 OK')
@@ -186,6 +204,7 @@ class AutoCRUDTest(unittest.TestCase):
                 'data': {
                     'id':   1,
                     'name': 'Alfred',
+                    'joined': '2015-11-01T09:30:12Z',
                 },
             }
         )
@@ -199,18 +218,21 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   1,
                         'name': 'Alfred',
+                        'joined': '2015-11-01T09:30:12Z',
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                 ]
             }
         )
 
     def test_single_delete(self):
-        self.db_session.add(Employee(name="Jim"))
-        self.db_session.add(Employee(name="Bob"))
+        now = datetime.now()
+        self.db_session.add(Employee(name="Jim", joined=now))
+        self.db_session.add(Employee(name="Bob", joined=now))
         self.db_session.commit()
 
         response, = self.simulate_request('/employees/1', method='DELETE', headers={'Accept': 'application/json'})
@@ -238,6 +260,7 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   2,
                         'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                 ]
             }
@@ -245,8 +268,9 @@ class AutoCRUDTest(unittest.TestCase):
 
 
     def test_single_get(self):
-        self.db_session.add(Employee(name="Jim"))
-        self.db_session.add(Employee(name="Bob"))
+        now = datetime.utcnow()
+        self.db_session.add(Employee(name="Jim", joined=now))
+        self.db_session.add(Employee(name="Bob", joined=now))
         self.db_session.commit()
 
         response, = self.simulate_request('/employees/1', method='GET', headers={'Accept': 'application/json'})
@@ -256,6 +280,7 @@ class AutoCRUDTest(unittest.TestCase):
                 'data': {
                     'id':   1,
                     'name': 'Jim',
+                    'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 },
             }
         )
@@ -267,6 +292,7 @@ class AutoCRUDTest(unittest.TestCase):
                 'data': {
                     'id':   2,
                     'name': 'Bob',
+                    'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 },
             }
         )
@@ -279,8 +305,9 @@ class AutoCRUDTest(unittest.TestCase):
         )
 
     def test_subcollection(self):
-        self.db_session.add(Employee(name="Jim"))
-        self.db_session.add(Employee(name="Bob"))
+        now = datetime.utcnow()
+        self.db_session.add(Employee(name="Jim", joined=now))
+        self.db_session.add(Employee(name="Bob", joined=now))
         self.db_session.commit()
 
         response, = self.simulate_request('/employees', query_string='name=Jim', method='GET', headers={'Accept': 'application/json'})
@@ -291,6 +318,7 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   1,
                         'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                 ]
             }
@@ -304,6 +332,7 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   2,
                         'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     }
                 ]
             }
@@ -317,6 +346,7 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   1,
                         'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                 ]
             }
@@ -330,6 +360,7 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   2,
                         'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     }
                 ]
             }

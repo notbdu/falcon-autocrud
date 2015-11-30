@@ -1,6 +1,8 @@
+from datetime import datetime
 import falcon
 import json
 from sqlalchemy.inspection import inspect
+import sqlalchemy.sql.sqltypes
 
 
 class CollectionResource(object):
@@ -11,8 +13,13 @@ class CollectionResource(object):
         self.db_session = db_session
 
     def serialize(self, resource):
+        def _serialize_value(value):
+            if isinstance(value, datetime):
+                return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            else:
+                return value
         return {
-            attr: getattr(resource, attr) for attr in inspect(self.model).attrs.keys()
+            attr: _serialize_value(getattr(resource, attr)) for attr in inspect(self.model).attrs.keys()
         }
 
     def on_get(self, req, resp, *args, **kwargs):
@@ -41,10 +48,14 @@ class CollectionResource(object):
         Add an item to the collection.
         """
         args = {}
+        mapper = inspect(self.model)
         for key, value in kwargs.items():
             args[key] = value
         for key, value in req.context['doc'].items():
-            args[key] = value
+            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+                args[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+            else:
+                args[key] = value
         resource = self.model(**args)
 
         self.db_session.add(resource)
@@ -67,8 +78,13 @@ class SingleResource(object):
         self.db_session = db_session
 
     def serialize(self, resource):
+        def _serialize_value(value):
+            if isinstance(value, datetime):
+                return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            else:
+                return value
         return {
-            attr: getattr(resource, attr) for attr in inspect(self.model).attrs.keys()
+            attr: _serialize_value(getattr(resource, attr)) for attr in inspect(self.model).attrs.keys()
         }
 
     def on_get(self, req, resp, *args, **kwargs):
@@ -144,8 +160,12 @@ class SingleResource(object):
 
         resource = resources[0]
 
+        mapper = inspect(self.model)
         for key, value in req.context['doc'].items():
-            setattr(resource, key, value)
+            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+                setattr(resource, key, datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ'))
+            else:
+                setattr(resource, key, value)
 
         self.db_session.add(resource)
         try:
@@ -181,8 +201,12 @@ class SingleResource(object):
 
         resource = resources[0]
 
+        mapper = inspect(self.model)
         for key, value in req.context['doc'].items():
-            setattr(resource, key, value)
+            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+                setattr(resource, key, datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ'))
+            else:
+                setattr(resource, key, value)
 
         self.db_session.add(resource)
         try:
