@@ -1,5 +1,7 @@
 from setuptools import setup
 
+version = '0.0.3'
+
 try:
     import pypandoc
     long_description = pypandoc.convert('README.md', 'rst')
@@ -7,7 +9,7 @@ except (IOError, ImportError):
     long_description = open('README.md').read()
 
 setup(name='falcon-autocrud',
-      version='0.0.2',
+      version=version,
       description='Makes RESTful CRUD easier',
       long_description=long_description,
       url='https://bitbucket.org/garymonson/falcon-autocrud',
