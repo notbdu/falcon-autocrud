@@ -3,6 +3,7 @@ import falcon
 import falcon.errors
 import json
 import sqlalchemy.exc
+import sqlalchemy.orm.exc
 from sqlalchemy.inspection import inspect
 import sqlalchemy.sql.sqltypes
 
@@ -105,14 +106,14 @@ class SingleResource(object):
             resources = resources.filter(
                 getattr(self.model, key) == value
             )
-        if resources.count() == 0:
-            raise falcon.errors.HTTPNotFound()
-        elif resources.count() > 1:
-            resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
-            req.context['result'] = None
-            return
 
-        resource = resources[0]
+        try:
+            resource = resources.one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            raise falcon.errors.HTTPNotFound()
+        except sqlalchemy.orm.exc.MultipleResultsFound:
+            raise falcon.errors.HTTPInternalServerError()
+
         resp.status = falcon.HTTP_OK
         req.context['result'] = {
             'data': self.serialize(resource),
@@ -127,14 +128,14 @@ class SingleResource(object):
             resources = resources.filter(
                 getattr(self.model, key) == value
             )
-        if resources.count() == 0:
-            raise falcon.errors.HTTPNotFound()
-        elif resources.count() > 1:
-            resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
-            req.context['result'] = None
-            return
 
-        resources.delete()
+        deleted = resources.delete()
+
+        if deleted == 0:
+            raise falcon.errors.HTTPNotFound()
+        elif deleted > 1:
+            self.db_session.rollback()
+            raise falcon.errors.HTTPInternalServerError()
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
@@ -148,14 +149,13 @@ class SingleResource(object):
             resources = resources.filter(
                 getattr(self.model, key) == value
             )
-        if resources.count() == 0:
-            raise falcon.errors.HTTPNotFound()
-        elif resources.count() > 1:
-            resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
-            req.context['result'] = None
-            return
 
-        resource = resources[0]
+        try:
+            resource = resources.one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            raise falcon.errors.HTTPNotFound()
+        except sqlalchemy.orm.exc.MultipleResultsFound:
+            raise falcon.errors.HTTPInternalServerError()
 
         mapper = inspect(self.model)
         for key, value in req.context['doc'].items():
@@ -192,14 +192,13 @@ class SingleResource(object):
             resources = resources.filter(
                 getattr(self.model, key) == value
             )
-        if resources.count() == 0:
-            raise falcon.errors.HTTPNotFound()
-        elif resources.count() > 1:
-            resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
-            req.context['result'] = None
-            return
 
-        resource = resources[0]
+        try:
+            resource = resources.one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            raise falcon.errors.HTTPNotFound()
+        except sqlalchemy.orm.exc.MultipleResultsFound:
+            raise falcon.errors.HTTPInternalServerError()
 
         mapper = inspect(self.model)
         for key, value in req.context['doc'].items():
