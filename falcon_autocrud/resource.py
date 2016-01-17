@@ -106,11 +106,7 @@ class SingleResource(object):
                 getattr(self.model, key) == value
             )
         if resources.count() == 0:
-            resp.status = falcon.HTTP_NOT_FOUND
-            req.context['result'] = {
-                'data': None,
-            }
-            return
+            raise falcon.errors.HTTPNotFound()
         elif resources.count() > 1:
             resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
             req.context['result'] = None
@@ -132,11 +128,7 @@ class SingleResource(object):
                 getattr(self.model, key) == value
             )
         if resources.count() == 0:
-            resp.status = falcon.HTTP_NOT_FOUND
-            req.context['result'] = {
-                'data': None,
-            }
-            return
+            raise falcon.errors.HTTPNotFound()
         elif resources.count() > 1:
             resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
             req.context['result'] = None
@@ -157,11 +149,7 @@ class SingleResource(object):
                 getattr(self.model, key) == value
             )
         if resources.count() == 0:
-            resp.status = falcon.HTTP_NOT_FOUND
-            req.context['result'] = {
-                'data': None,
-            }
-            return
+            raise falcon.errors.HTTPNotFound()
         elif resources.count() > 1:
             resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
             req.context['result'] = None
@@ -205,11 +193,7 @@ class SingleResource(object):
                 getattr(self.model, key) == value
             )
         if resources.count() == 0:
-            resp.status = falcon.HTTP_NOT_FOUND
-            req.context['result'] = {
-                'data': None,
-            }
-            return
+            raise falcon.errors.HTTPNotFound()
         elif resources.count() > 1:
             resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
             req.context['result'] = None

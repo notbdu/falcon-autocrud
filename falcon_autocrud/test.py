@@ -61,6 +61,10 @@ class AutoCRUDTest(unittest.TestCase):
         env = falcon.testing.create_environ(path=path, **kwargs)
         return self.app(env, self.srmock)
 
+    def assertNotFound(self, response):
+        self.assertEqual(self.srmock.status, '404 Not Found')
+        self.assertEqual(response, [])
+
     def assertConflict(self, response):
         self.assertEqual(self.srmock.status, '409 Conflict')
         self.assertEqual(
@@ -257,6 +261,34 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+    def test_put_resource_not_found(self):
+        now     = datetime.utcnow()
+        then    = now - timedelta(minutes=5)
+        self.db_session.add(Employee(name="Jim", joined=then))
+        self.db_session.commit()
+
+        body = json.dumps({
+            'name':   'Bob',
+            'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        response = self.simulate_request('/employees/2', method='PUT', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertNotFound(response)
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    },
+                ]
+            }
+        )
+
     def test_patch_resource(self):
         now = datetime.utcnow()
         self.db_session.add(Employee(name="Jim", joined=now))
@@ -334,6 +366,34 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+    def test_patch_resource_not_found(self):
+        now     = datetime.utcnow()
+        then    = now - timedelta(minutes=5)
+        self.db_session.add(Employee(name="Jim", joined=then))
+        self.db_session.commit()
+
+        body = json.dumps({
+            'name':   'Bob',
+            'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        response = self.simulate_request('/employees/2', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertNotFound(response)
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    },
+                ]
+            }
+        )
+
     def test_single_delete(self):
         now = datetime.now()
         self.db_session.add(Employee(name="Jim", joined=now))
@@ -347,14 +407,8 @@ class AutoCRUDTest(unittest.TestCase):
             {}
         )
 
-        response, = self.simulate_request('/employees/1', method='GET', headers={'Accept': 'application/json'})
-        self.assertEqual(self.srmock.status, '404 Not Found')
-        self.assertEqual(
-            json.loads(response.decode('utf-8')),
-            {
-                'data': None,
-            }
-        )
+        response = self.simulate_request('/employees/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertNotFound(response)
 
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '200 OK')
@@ -371,6 +425,15 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+
+    def test_single_delete_not_found(self):
+        now = datetime.now()
+        self.db_session.add(Employee(name="Jim", joined=now))
+        self.db_session.add(Employee(name="Bob", joined=now))
+        self.db_session.commit()
+
+        response = self.simulate_request('/employees/3', method='GET', headers={'Accept': 'application/json'})
+        self.assertNotFound(response)
 
     def test_single_get(self):
         now = datetime.utcnow()
@@ -402,12 +465,9 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
-        response, = self.simulate_request('/employees/3', method='GET', headers={'Accept': 'application/json'})
-        self.assertEqual(self.srmock.status, '404 Not Found')
-        self.assertEqual(
-            json.loads(response.decode('utf-8')),
-            {'data': None}
-        )
+    def test_single_get_not_found(self):
+        response = self.simulate_request('/employees/3', method='GET', headers={'Accept': 'application/json'})
+        self.assertNotFound(response)
 
     def test_subcollection(self):
         now = datetime.utcnow()
