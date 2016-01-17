@@ -1,6 +1,8 @@
 from datetime import datetime
 import falcon
+import falcon.errors
 import json
+import sqlalchemy.exc
 from sqlalchemy.inspection import inspect
 import sqlalchemy.sql.sqltypes
 
@@ -61,6 +63,13 @@ class CollectionResource(object):
         self.db_session.add(resource)
         try:
             self.db_session.commit()
+        except sqlalchemy.exc.IntegrityError as err:
+            # Cases such as unallowed NULL value should have been checked
+            # before we got here (e.g. validate against schema
+            # using falconjsonio) - therefore assume this is a UNIQUE
+            # constraint violation
+            self.db_session.rollback()
+            raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
         except:
             self.db_session.rollback()
             raise
@@ -170,6 +179,13 @@ class SingleResource(object):
         self.db_session.add(resource)
         try:
             self.db_session.commit()
+        except sqlalchemy.exc.IntegrityError as err:
+            # Cases such as unallowed NULL value should have been checked
+            # before we got here (e.g. validate against schema
+            # using falconjsonio) - therefore assume this is a UNIQUE
+            # constraint violation
+            self.db_session.rollback()
+            raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
         except:
             self.db_session.rollback()
             raise
@@ -211,6 +227,13 @@ class SingleResource(object):
         self.db_session.add(resource)
         try:
             self.db_session.commit()
+        except sqlalchemy.exc.IntegrityError as err:
+            # Cases such as unallowed NULL value should have been checked
+            # before we got here (e.g. validate against schema
+            # using falconjsonio) - therefore assume this is a UNIQUE
+            # constraint violation
+            self.db_session.rollback()
+            raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
         except:
             self.db_session.rollback()
             raise

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import falconjsonio.middleware, falconjsonio.schema
 import falcon, falcon.testing
 import json
@@ -16,7 +16,7 @@ Base = declarative_base()
 class Employee(Base):
     __tablename__ = 'employees'
     id      = Column(Integer, primary_key=True)
-    name    = Column(String(50))
+    name    = Column(String(50), unique=True)
     joined  = Column(DateTime())
 
 class EmployeeCollectionResource(CollectionResource):
@@ -48,7 +48,7 @@ class AutoCRUDTest(unittest.TestCase):
         create_sql = """
             CREATE TABLE employees (
                 id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                name    TEXT NOT NULL,
+                name    TEXT UNIQUE NOT NULL,
                 joined  DATETIME NOT NULL
             );
         """
@@ -60,6 +60,16 @@ class AutoCRUDTest(unittest.TestCase):
     def simulate_request(self, path, *args, **kwargs):
         env = falcon.testing.create_environ(path=path, **kwargs)
         return self.app(env, self.srmock)
+
+    def assertConflict(self, response):
+        self.assertEqual(self.srmock.status, '409 Conflict')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'title':        'Conflict',
+                'description':  'Unique constraint violated',
+            }
+        )
 
     def test_empty_collection(self):
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
@@ -143,6 +153,33 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+    def test_add_resource_conflict(self):
+        now     = datetime.utcnow()
+        then    = now - timedelta(minutes=5)
+        self.db_session.add(Employee(name="Alfred", joined=then))
+        self.db_session.commit()
+        body = json.dumps({
+            'name': 'Alfred',
+            'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        response, = self.simulate_request('/employees', method='POST', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertConflict(response)
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Alfred',
+                        'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    },
+                ]
+            }
+        )
+
     def test_put_resource(self):
         now = datetime.utcnow()
         self.db_session.add(Employee(name="Jim", joined=now))
@@ -186,6 +223,40 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+    def test_put_resource_conflict(self):
+        now     = datetime.utcnow()
+        then    = now - timedelta(minutes=5)
+        self.db_session.add(Employee(name="Jim", joined=then))
+        self.db_session.add(Employee(name="Bob", joined=then))
+        self.db_session.commit()
+
+        body = json.dumps({
+            'name':   'Bob',
+            'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        response, = self.simulate_request('/employees/1', method='PUT', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertConflict(response)
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    },
+                ]
+            }
+        )
+
     def test_patch_resource(self):
         now = datetime.utcnow()
         self.db_session.add(Employee(name="Jim", joined=now))
@@ -224,6 +295,40 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    },
+                ]
+            }
+        )
+
+    def test_patch_resource_conflict(self):
+        now     = datetime.utcnow()
+        then    = now - timedelta(minutes=5)
+        self.db_session.add(Employee(name="Jim", joined=then))
+        self.db_session.add(Employee(name="Bob", joined=then))
+        self.db_session.commit()
+
+        body = json.dumps({
+            'name': 'Bob',
+            'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        response, = self.simulate_request('/employees/1', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertConflict(response)
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     },
                 ]
             }
