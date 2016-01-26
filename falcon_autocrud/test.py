@@ -5,7 +5,8 @@ import json
 import tempfile
 import unittest
 from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy import create_engine, Column, DateTime, Integer, String
+from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 from .resource import CollectionResource, SingleResource
@@ -13,11 +14,25 @@ from .resource import CollectionResource, SingleResource
 
 Base = declarative_base()
 
+class Company(Base):
+    __tablename__ = 'companies'
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(50), unique=True)
+    employees   = relationship('Employee')
+
 class Employee(Base):
     __tablename__ = 'employees'
-    id      = Column(Integer, primary_key=True)
-    name    = Column(String(50), unique=True)
-    joined  = Column(DateTime())
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(50), unique=True)
+    joined      = Column(DateTime())
+    company_id  = Column(Integer, ForeignKey('companies.id'), nullable=True)
+    company     = relationship('Company', back_populates='employees')
+
+class CompanyCollectionResource(CollectionResource):
+    model = Company
+
+class CompanyResource(SingleResource):
+    model = Company
 
 class EmployeeCollectionResource(CollectionResource):
     model = Employee
@@ -42,14 +57,26 @@ class AutoCRUDTest(unittest.TestCase):
         db_engine       = create_engine('sqlite:///{0}'.format(self.db_file.name))
         self.db_session = Session(bind=db_engine)
 
+        self.app.add_route('/companies', CompanyCollectionResource(self.db_session))
+        self.app.add_route('/companies/{id}', CompanyResource(self.db_session))
         self.app.add_route('/employees', EmployeeCollectionResource(self.db_session))
         self.app.add_route('/employees/{id}', EmployeeResource(self.db_session))
 
         create_sql = """
+            CREATE TABLE companies (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                name        TEXT UNIQUE NOT NULL
+            );
+        """
+        result = self.db_session.execute(create_sql)
+        result.close()
+
+        create_sql = """
             CREATE TABLE employees (
-                id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                name    TEXT UNIQUE NOT NULL,
-                joined  DATETIME NOT NULL
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                name        TEXT UNIQUE NOT NULL,
+                joined      DATETIME NOT NULL,
+                company_id  INTEGER
             );
         """
         result = self.db_session.execute(create_sql)
@@ -96,6 +123,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -113,11 +141,13 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     }
                 ]
             }
@@ -138,6 +168,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'company_id': None,
                 },
             }
         )
@@ -152,6 +183,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Alfred',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -179,6 +211,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Alfred',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -203,6 +236,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': '2015-11-01T09:30:12Z',
+                    'company_id': None,
                 },
             }
         )
@@ -217,11 +251,13 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Alfred',
                         'joined': '2015-11-01T09:30:12Z',
+                        'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -251,11 +287,13 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -284,6 +322,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -308,6 +347,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': '2015-11-01T09:30:12Z',
+                    'company_id': None,
                 },
             }
         )
@@ -322,11 +362,13 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Alfred',
                         'joined': '2015-11-01T09:30:12Z',
+                        'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -356,11 +398,13 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -389,6 +433,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -420,6 +465,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -449,6 +495,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Jim',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'company_id': None,
                 },
             }
         )
@@ -461,6 +508,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   2,
                     'name': 'Bob',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'company_id': None,
                 },
             }
         )
@@ -484,6 +532,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -498,6 +547,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     }
                 ]
             }
@@ -512,6 +562,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     },
                 ]
             }
@@ -526,6 +577,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
                     }
                 ]
             }

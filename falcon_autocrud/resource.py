@@ -4,6 +4,7 @@ import falcon.errors
 import json
 import sqlalchemy.exc
 import sqlalchemy.orm.exc
+from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.inspection import inspect
 import sqlalchemy.sql.sqltypes
 
@@ -21,8 +22,9 @@ class CollectionResource(object):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
             else:
                 return value
+        attrs = inspect(self.model).attrs
         return {
-            attr: _serialize_value(getattr(resource, attr)) for attr in inspect(self.model).attrs.keys()
+            attr: _serialize_value(getattr(resource, attr)) for attr in attrs.keys() if isinstance(attrs[attr], ColumnProperty)
         }
 
     def on_get(self, req, resp, *args, **kwargs):
@@ -93,8 +95,9 @@ class SingleResource(object):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
             else:
                 return value
+        attrs = inspect(self.model).attrs
         return {
-            attr: _serialize_value(getattr(resource, attr)) for attr in inspect(self.model).attrs.keys()
+            attr: _serialize_value(getattr(resource, attr)) for attr in attrs.keys() if isinstance(attrs[attr], ColumnProperty)
         }
 
     def on_get(self, req, resp, *args, **kwargs):
