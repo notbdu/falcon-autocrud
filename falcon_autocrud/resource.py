@@ -37,9 +37,10 @@ class CollectionResource(object):
                 getattr(self.model, key) == value
             )
         for key, value in req.params.items():
-            resources = resources.filter(
-                getattr(self.model, key) == value
-            )
+            attr = getattr(self.model, key, None)
+            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
+            resources = resources.filter(attr == value)
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {

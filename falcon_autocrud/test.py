@@ -88,6 +88,16 @@ class AutoCRUDTest(unittest.TestCase):
         env = falcon.testing.create_environ(path=path, **kwargs)
         return self.app(env, self.srmock)
 
+    def assertBadRequest(self, response):
+        self.assertEqual(self.srmock.status, '400 Bad Request')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'title':        'Invalid attribute',
+                'description':  'An attribute provided for filtering is invalid',
+            }
+        )
+
     def assertNotFound(self, response):
         self.assertEqual(self.srmock.status, '404 Not Found')
         self.assertEqual(response, [])
@@ -582,3 +592,12 @@ class AutoCRUDTest(unittest.TestCase):
                 ]
             }
         )
+
+        response, = self.simulate_request('/employees', query_string='foo=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertBadRequest(response)
+
+        response, = self.simulate_request('/employees', query_string='company=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertBadRequest(response)
+
+        response, = self.simulate_request('/companies', query_string='employees=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertBadRequest(response)
