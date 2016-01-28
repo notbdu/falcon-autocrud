@@ -33,9 +33,10 @@ class CollectionResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
-            resources = resources.filter(
-                getattr(self.model, key) == value
-            )
+            attr = getattr(self.model, key, None)
+            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            resources = resources.filter(attr == value)
         for key, value in req.params.items():
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
@@ -56,6 +57,8 @@ class CollectionResource(object):
         args = {}
         mapper = inspect(self.model)
         for key, value in kwargs.items():
+            if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             args[key] = value
         for key, value in req.context['doc'].items():
             if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
@@ -107,9 +110,10 @@ class SingleResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
-            resources = resources.filter(
-                getattr(self.model, key) == value
-            )
+            attr = getattr(self.model, key, None)
+            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            resources = resources.filter(attr == value)
 
         try:
             resource = resources.one()
@@ -129,9 +133,10 @@ class SingleResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
-            resources = resources.filter(
-                getattr(self.model, key) == value
-            )
+            attr = getattr(self.model, key, None)
+            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            resources = resources.filter(attr == value)
 
         deleted = resources.delete()
 
@@ -150,9 +155,10 @@ class SingleResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
-            resources = resources.filter(
-                getattr(self.model, key) == value
-            )
+            attr = getattr(self.model, key, None)
+            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            resources = resources.filter(attr == value)
 
         try:
             resource = resources.one()
@@ -193,9 +199,10 @@ class SingleResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
-            resources = resources.filter(
-                getattr(self.model, key) == value
-            )
+            attr = getattr(self.model, key, None)
+            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            resources = resources.filter(attr == value)
 
         try:
             resource = resources.one()

@@ -112,6 +112,16 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+    def assertInternalServerError(self, response):
+        self.assertEqual(self.srmock.status, '500 Internal Server Error')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'title':        'Internal Server Error',
+                'description':  'An internal server error occurred',
+            }
+        )
+
     def test_empty_collection(self):
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(
@@ -601,3 +611,46 @@ class AutoCRUDTest(unittest.TestCase):
 
         response, = self.simulate_request('/companies', query_string='employees=1', method='GET', headers={'Accept': 'application/json'})
         self.assertBadRequest(response)
+
+    def test_bad_route_filter(self):
+        self.app.add_route('/bad-employees/{foo}/stuff', EmployeeCollectionResource(self.db_session))
+        self.app.add_route('/bad-employees/{foo}', EmployeeResource(self.db_session))
+
+        response, = self.simulate_request('/bad-employees/1/stuff', method='GET', headers={'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/bad-employees/1/stuff', method='POST', headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/bad-employees/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/bad-employees/1', method='DELETE', headers={'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/bad-employees/1', method='PUT', headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/bad-employees/1', method='PATCH', headers={'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        self.app.add_route('/more-bad-employees/{company}/stuff', EmployeeCollectionResource(self.db_session))
+        self.app.add_route('/more-bad-employees/{company}', EmployeeResource(self.db_session))
+
+        response, = self.simulate_request('/more-bad-employees/1/stuff', method='GET', headers={'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/more-bad-employees/1/stuff', method='POST', body='{}', headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/more-bad-employees/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/more-bad-employees/1', method='DELETE', headers={'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/more-bad-employees/1', method='PUT', headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertInternalServerError(response)
+
+        response, = self.simulate_request('/more-bad-employees/1', method='PATCH', headers={'Accept': 'application/json'})
+        self.assertInternalServerError(response)
