@@ -603,6 +603,72 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+        response, = self.simulate_request('/employees', query_string='id__gt__gt=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertBadRequest(response)
+
+        response, = self.simulate_request('/employees', query_string='id__foo=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertBadRequest(response)
+
+        response, = self.simulate_request('/employees', query_string='id__gt=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    }
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='id__gte=2', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    }
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='id__lt=2', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    }
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='id__lte=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    }
+                ]
+            }
+        )
+
         response, = self.simulate_request('/employees', query_string='foo=1', method='GET', headers={'Accept': 'application/json'})
         self.assertBadRequest(response)
 

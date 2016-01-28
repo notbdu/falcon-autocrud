@@ -37,11 +37,31 @@ class CollectionResource(object):
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             resources = resources.filter(attr == value)
-        for key, value in req.params.items():
+        for filter_key, value in req.params.items():
+            filter_parts = filter_key.split('__')
+            key = filter_parts[0]
+            if len(filter_parts) == 1:
+                comparison = '='
+            elif len(filter_parts) == 2:
+                comparison = filter_parts[1]
+            else:
+                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
+
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
                 raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
-            resources = resources.filter(attr == value)
+            if comparison == '=':
+                resources = resources.filter(attr == value)
+            elif comparison == 'lt':
+                resources = resources.filter(attr < value)
+            elif comparison == 'lte':
+                resources = resources.filter(attr <= value)
+            elif comparison == 'gt':
+                resources = resources.filter(attr > value)
+            elif comparison == 'gte':
+                resources = resources.filter(attr >= value)
+            else:
+                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {
