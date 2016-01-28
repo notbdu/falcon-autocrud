@@ -24,6 +24,7 @@ class Employee(Base):
     __tablename__ = 'employees'
     id      = Column(Integer, primary_key=True)
     name    = Column(String(50))
+    age     = Column(Integer)
 ```
 
 Declare your resources:
@@ -66,6 +67,11 @@ This automatically creates RESTful endpoints for your resources:
 
 ```
 http GET http://localhost/employees
+http GET http://localhost/employees?name=Bob
+http GET http://localhost/employees?age__gt=24
+http GET http://localhost/employees?age__gte=25
+http GET http://localhost/employees?age__lt=25
+http GET http://localhost/employees?age__lte=24
 echo '{"name": "Jim"}' | http POST http://localhost/employees
 http GET http://localhost/employees/100
 echo '{"name": "Jim"}' | http PUT http://localhost/employees/100
