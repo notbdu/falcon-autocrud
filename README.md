@@ -2,6 +2,10 @@
 
 Makes RESTful CRUD easier.
 
+## Test status
+
+[ ![Codeship Status for garymonson/falcon-autocrud](https://codeship.com/projects/ed5bb4c0-b517-0133-757f-3e023a4cadff/status?branch=master)](https://codeship.com/projects/134046)
+
 ## Quick start for contributing
 
     virtualenv -p `which python3` virtualenv
