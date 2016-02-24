@@ -40,6 +40,11 @@ class EmployeeCollectionResource(CollectionResource):
 class EmployeeResource(SingleResource):
     model = Employee
 
+class OtherEmployeeResource(SingleResource):
+    model = Employee
+    attr_map = {
+        'employee_id': 'id'
+    }
 
 class AutoCRUDTest(unittest.TestCase):
     def setUp(self):
@@ -720,3 +725,70 @@ class AutoCRUDTest(unittest.TestCase):
 
         response, = self.simulate_request('/more-bad-employees/1', method='PATCH', headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
+
+    def test_mapping(self):
+        now = datetime.utcnow()
+        self.db_session.add(Employee(name="Jim", joined=now))
+
+        self.app.add_route('/other-employees/{employee_id}', OtherEmployeeResource(self.db_session))
+
+        response, = self.simulate_request('/other-employees/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   1,
+                    'name': 'Jim',
+                    'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'company_id': None,
+                },
+            }
+        )
+
+        body = json.dumps({
+            'name': 'Alfred',
+            'joined': '2015-11-01T09:30:12Z',
+        })
+        response, = self.simulate_request('/other-employees/1', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   1,
+                    'name': 'Alfred',
+                    'joined': '2015-11-01T09:30:12Z',
+                    'company_id': None,
+                },
+            }
+        )
+
+        body = json.dumps({
+            'name': 'Bob',
+            'joined': '2015-12-01T09:30:12Z',
+        })
+        response, = self.simulate_request('/other-employees/1', method='PUT', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   1,
+                    'name': 'Bob',
+                    'joined': '2015-12-01T09:30:12Z',
+                    'company_id': None,
+                },
+            }
+        )
+
+        response, = self.simulate_request('/employees/1', method='DELETE', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {}
+        )
+
+        response = self.simulate_request('/other-employees/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '404 Not Found')
+        self.assertEqual(response, [])

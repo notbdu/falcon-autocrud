@@ -33,6 +33,7 @@ class CollectionResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
+            key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
@@ -77,6 +78,7 @@ class CollectionResource(object):
         args = {}
         mapper = inspect(self.model)
         for key, value in kwargs.items():
+            key = getattr(self, 'attr_map', {}).get(key, key)
             if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             args[key] = value
@@ -130,6 +132,7 @@ class SingleResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
+            key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
@@ -153,6 +156,7 @@ class SingleResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
+            key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
@@ -175,6 +179,7 @@ class SingleResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
+            key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
@@ -219,6 +224,7 @@ class SingleResource(object):
         """
         resources = self.db_session.query(self.model)
         for key, value in kwargs.items():
+            key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
