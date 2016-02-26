@@ -544,8 +544,10 @@ class AutoCRUDTest(unittest.TestCase):
 
     def test_subcollection(self):
         now = datetime.utcnow()
-        self.db_session.add(Employee(name="Jim", joined=now))
-        self.db_session.add(Employee(name="Bob", joined=now))
+        self.db_session.add(Employee(id=1, name="Jim", joined=now))
+        self.db_session.add(Employee(id=2, name="Bob", joined=now))
+        self.db_session.add(Employee(id=3, name="Jack", joined=now))
+        self.db_session.add(Employee(id=4, name="Alice Joplin", joined=now))
         self.db_session.commit()
 
         response, = self.simulate_request('/employees', query_string='name=Jim', method='GET', headers={'Accept': 'application/json'})
@@ -614,14 +616,15 @@ class AutoCRUDTest(unittest.TestCase):
         response, = self.simulate_request('/employees', query_string='id__foo=1', method='GET', headers={'Accept': 'application/json'})
         self.assertBadRequest(response)
 
-        response, = self.simulate_request('/employees', query_string='id__gt=1', method='GET', headers={'Accept': 'application/json'})
+        response, = self.simulate_request('/employees', query_string='id__gt=3', method='GET', headers={'Accept': 'application/json'})
+        print(response)
         self.assertEqual(
             json.loads(response.decode('utf-8')),
             {
                 'data': [
                     {
-                        'id':   2,
-                        'name': 'Bob',
+                        'id':   4,
+                        'name': 'Alice Joplin',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'company_id': None,
                     }
@@ -629,14 +632,14 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
-        response, = self.simulate_request('/employees', query_string='id__gte=2', method='GET', headers={'Accept': 'application/json'})
+        response, = self.simulate_request('/employees', query_string='id__gte=4', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(
             json.loads(response.decode('utf-8')),
             {
                 'data': [
                     {
-                        'id':   2,
-                        'name': 'Bob',
+                        'id':   4,
+                        'name': 'Alice Joplin',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'company_id': None,
                     }
@@ -667,6 +670,54 @@ class AutoCRUDTest(unittest.TestCase):
                     {
                         'id':   1,
                         'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    }
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='name__contains=J', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   3,
+                        'name': 'Jack',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   4,
+                        'name': 'Alice Joplin',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    }
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='name__startswith=J', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   3,
+                        'name': 'Jack',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'company_id': None,
                     }

@@ -53,6 +53,10 @@ class CollectionResource(object):
                 raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
             if comparison == '=':
                 resources = resources.filter(attr == value)
+            elif comparison == 'startswith':
+                resources = resources.filter(attr.like('{0}%'.format(value)))
+            elif comparison == 'contains':
+                resources = resources.filter(attr.like('%{0}%'.format(value)))
             elif comparison == 'lt':
                 resources = resources.filter(attr < value)
             elif comparison == 'lte':
