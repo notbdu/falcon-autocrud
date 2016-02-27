@@ -224,16 +224,13 @@ class SingleResource(object):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             resources = resources.filter(attr == value)
 
-        self.db_session.begin(subtransactions=True)
         try:
             deleted = resources.delete()
         except sqlalchemy.exc.IntegrityError as err:
             # As far we I know, this should only be caused by foreign key constraint being violated
 
-            # No work has been done to rollback
+            # No work has been done to rollback, hence no need for a transaction
             raise falcon.errors.HTTPConflict('Conflict', 'Other content links to this')
-        else:
-            self.db_session.commit()
 
         if deleted == 0:
             raise falcon.errors.HTTPNotFound()

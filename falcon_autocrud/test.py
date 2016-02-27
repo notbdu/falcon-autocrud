@@ -568,6 +568,50 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+        # Now ensure the failed delete does not leave a transaction open
+        body = json.dumps({
+            'name': 'Alfred',
+            'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        # Commits transaction:
+        response, = self.simulate_request('/employees', method='POST', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '201 Created')
+
+        body = json.dumps({
+            'name': 'Bob',
+            'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        response, = self.simulate_request('/employees', method='POST', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertConflict(response)
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': 1,
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   3,
+                        'name': 'Alfred',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                ]
+            }
+        )
+
     def test_single_get(self):
         now = datetime.utcnow()
         self.db_session.add(Employee(name="Jim", joined=now))
