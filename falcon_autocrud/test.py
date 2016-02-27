@@ -67,6 +67,14 @@ class AutoCRUDTest(unittest.TestCase):
         self.app.add_route('/employees', EmployeeCollectionResource(self.db_session))
         self.app.add_route('/employees/{id}', EmployeeResource(self.db_session))
 
+        # Requires sqlite to be compiled with foreign keys support.  Perhaps we
+        # need to start using Postgres for testing?
+        enable_fk_sql = """
+            PRAGMA foreign_keys = ON;
+        """
+        result = self.db_session.execute(enable_fk_sql)
+        result.close()
+
         create_sql = """
             CREATE TABLE companies (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +89,8 @@ class AutoCRUDTest(unittest.TestCase):
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 name        TEXT UNIQUE NOT NULL,
                 joined      DATETIME NOT NULL,
-                company_id  INTEGER
+                company_id  INTEGER,
+                FOREIGN KEY (company_id) REFERENCES companies(id)
             );
         """
         result = self.db_session.execute(create_sql)
@@ -505,6 +514,59 @@ class AutoCRUDTest(unittest.TestCase):
 
         response = self.simulate_request('/employees/3', method='GET', headers={'Accept': 'application/json'})
         self.assertNotFound(response)
+
+    def test_single_delete_violates_foreign_key(self):
+        now = datetime.now()
+        initech = Company(name="Initech")
+        self.db_session.begin(subtransactions=True)
+        self.db_session.add(initech)
+        self.db_session.add(Employee(name="Jim", joined=now, company=initech))
+        self.db_session.add(Employee(name="Bob", joined=now))
+        self.db_session.commit()
+
+        response, = self.simulate_request('/companies/1', method='DELETE', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '409 Conflict')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'title':        'Conflict',
+                'description':  'Other content links to this',
+            }
+        )
+
+        response, = self.simulate_request('/companies/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   1,
+                    'name': 'Initech',
+                },
+            }
+        )
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': 1,
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                ]
+            }
+        )
 
     def test_single_get(self):
         now = datetime.utcnow()
