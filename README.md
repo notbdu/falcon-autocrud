@@ -83,4 +83,6 @@ http GET http://localhost/employees/100
 echo '{"name": "Jim"}' | http PUT http://localhost/employees/100
 echo '{"name": "Jim"}' | http PATCH http://localhost/employees/100
 http DELETE http://localhost/employees/100
+# PATCHing a collection to add entities in bulk
+echo '{"patches": [{"op": "add", "path": "/", "value": {"name": "Jim"}}]}' | http PATCH http://localhost/employees
 ```

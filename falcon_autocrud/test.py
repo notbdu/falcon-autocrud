@@ -679,7 +679,6 @@ class AutoCRUDTest(unittest.TestCase):
         self.assertBadRequest(response)
 
         response, = self.simulate_request('/employees', query_string='id__gt=3', method='GET', headers={'Accept': 'application/json'})
-        print(response)
         self.assertEqual(
             json.loads(response.decode('utf-8')),
             {
@@ -905,3 +904,108 @@ class AutoCRUDTest(unittest.TestCase):
         response = self.simulate_request('/other-employees/1', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '404 Not Found')
         self.assertEqual(response, [])
+
+    def test_patch_collection(self):
+        now = datetime.utcnow()
+        body = json.dumps({
+            'patches': [
+                {'op': 'add', 'path': '/', 'value': {'name': 'Jim', 'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ')}},
+                {'op': 'add', 'path': '/', 'value': {'name': 'Bob', 'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ')}},
+            ]
+        })
+        response, = self.simulate_request('/employees', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                ]
+            }
+        )
+
+        # Add more
+        body = json.dumps({
+            'patches': [
+                {'op': 'add', 'path': '/', 'value': {'name': 'Jack', 'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ')}},
+            ]
+        })
+        response, = self.simulate_request('/employees', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   3,
+                        'name': 'Jack',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                ]
+            }
+        )
+
+        body = json.dumps({
+            'patches': [
+                {'op': 'add', 'path': '/', 'value': {'name': 'Jill', 'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ')}},
+                {'op': 'add', 'path': '/', 'value': {'name': 'Bob', 'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ')}},
+            ]
+        })
+        response, = self.simulate_request('/employees', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '409 Conflict')
+
+        # Jill has not been added - last request failed atomically
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   3,
+                        'name': 'Jack',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                ]
+            }
+        )

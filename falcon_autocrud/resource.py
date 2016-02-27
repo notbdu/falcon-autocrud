@@ -112,6 +112,64 @@ class CollectionResource(object):
             'data': self.serialize(resource),
         }
 
+    def on_patch(self, req, resp, *args, **kwargs):
+        """
+        Update a collection.
+
+        For now, it only supports adding entities to the collection, like this:
+
+        {
+            'patches': [
+                {'op': 'add', 'path': '/', 'value': {'name': 'Jim', 'age', 25}},
+                {'op': 'add', 'path': '/', 'value': {'name': 'Bob', 'age', 28}}
+            ]
+        }
+
+        """
+        mapper  = inspect(self.model)
+        patches = req.context['doc']['patches']
+
+        for index, patch in enumerate(patches):
+            # Only support adding entities in a collection patch, for now
+            if 'op' not in patch or patch['op'] not in ['add']:
+                raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid'.format(index))
+            if patch['op'] == 'add':
+                if 'path' not in patch or patch['path'] != '/':
+                    raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid for op {1}'.format(index, patch['op']))
+                try:
+                    patch_value = patch['value']
+                except KeyError:
+                    raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid for op {1}'.format(index, patch['op']))
+                args = {}
+                for key, value in kwargs.items():
+                    key = getattr(self, 'attr_map', {}).get(key, key)
+                    if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                        raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                    args[key] = value
+                for key, value in patch_value.items():
+                    if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+                        args[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+                    else:
+                        args[key] = value
+                resource = self.model(**args)
+                self.db_session.add(resource)
+
+        try:
+            self.db_session.commit()
+        except sqlalchemy.exc.IntegrityError as err:
+            # Cases such as unallowed NULL value should have been checked
+            # before we got here (e.g. validate against schema
+            # using falconjsonio) - therefore assume this is a UNIQUE
+            # constraint violation
+            self.db_session.rollback()
+            raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+        except:
+            self.db_session.rollback()
+            raise
+
+        resp.status = falcon.HTTP_OK
+        req.context['result'] = {}
+
 class SingleResource(object):
     """
     Provides CRUD facilities for a single resource.
