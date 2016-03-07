@@ -16,6 +16,23 @@ class CollectionResource(object):
     def __init__(self, db_session):
         self.db_session = db_session
 
+    def deserialize(self, path_data, body_data):
+        mapper      = inspect(self.model)
+        attributes  = {}
+
+        for key, value in path_data.items():
+            key = getattr(self, 'attr_map', {}).get(key, key)
+            if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            attributes[key] = value
+
+        for key, value in body_data.items():
+            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+                attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+            else:
+                attributes[key] = value
+        return attributes
+
     def serialize(self, resource):
         def _serialize_value(value):
             if isinstance(value, datetime):
@@ -79,19 +96,8 @@ class CollectionResource(object):
         """
         Add an item to the collection.
         """
-        args = {}
-        mapper = inspect(self.model)
-        for key, value in kwargs.items():
-            key = getattr(self, 'attr_map', {}).get(key, key)
-            if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-            args[key] = value
-        for key, value in req.context['doc'].items():
-            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
-                args[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
-            else:
-                args[key] = value
-        resource = self.model(**args)
+        attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
+        resource = self.model(**attributes)
 
         self.db_session.add(resource)
         try:
@@ -177,6 +183,18 @@ class SingleResource(object):
     def __init__(self, db_session):
         self.db_session = db_session
 
+    def deserialize(self, data):
+        mapper      = inspect(self.model)
+        attributes  = {}
+
+        for key, value in data.items():
+            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+                attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+            else:
+                attributes[key] = value
+
+        return attributes
+
     def serialize(self, resource):
         def _serialize_value(value):
             if isinstance(value, datetime):
@@ -260,12 +278,9 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.MultipleResultsFound:
             raise falcon.errors.HTTPInternalServerError()
 
-        mapper = inspect(self.model)
-        for key, value in req.context['doc'].items():
-            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
-                setattr(resource, key, datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ'))
-            else:
-                setattr(resource, key, value)
+        attributes = self.deserialize(req.context['doc'])
+        for key, value in attributes.items():
+            setattr(resource, key, value)
 
         self.db_session.add(resource)
         try:
@@ -305,12 +320,9 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.MultipleResultsFound:
             raise falcon.errors.HTTPInternalServerError()
 
-        mapper = inspect(self.model)
-        for key, value in req.context['doc'].items():
-            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
-                setattr(resource, key, datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ'))
-            else:
-                setattr(resource, key, value)
+        attributes = self.deserialize(req.context['doc'])
+        for key, value in attributes.items():
+            setattr(resource, key, value)
 
         self.db_session.add(resource)
         try:
