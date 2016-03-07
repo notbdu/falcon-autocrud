@@ -8,6 +8,15 @@ from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.inspection import inspect
 import sqlalchemy.sql.sqltypes
 
+try:
+    import geoalchemy2.shape
+    from geoalchemy2.elements import WKBElement
+    from geoalchemy2.types import Geometry
+    from shapely.geometry import Point
+    support_geo = True
+except ImportError:
+    support_geo = False
+
 
 class CollectionResource(object):
     """
@@ -27,8 +36,13 @@ class CollectionResource(object):
             attributes[key] = value
 
         for key, value in body_data.items():
-            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+            column = mapper.columns[key]
+            if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+            elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POINT':
+                point           = Point(value['x'], value['y'])
+                # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
+                attributes[key] = WKBElement(point.wkb, srid=4326)
             else:
                 attributes[key] = value
         return attributes
@@ -37,6 +51,9 @@ class CollectionResource(object):
         def _serialize_value(value):
             if isinstance(value, datetime):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            elif support_geo and isinstance(value, WKBElement):
+                value = geoalchemy2.shape.to_shape(value)
+                return {'x': value.x, 'y': value.y}
             else:
                 return value
         attrs = inspect(self.model).attrs
@@ -188,8 +205,13 @@ class SingleResource(object):
         attributes  = {}
 
         for key, value in data.items():
-            if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+            column = mapper.columns[key]
+            if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+            elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POINT':
+                point           = Point(value['x'], value['y'])
+                # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
+                attributes[key] = WKBElement(point.wkb, srid=4326)
             else:
                 attributes[key] = value
 
@@ -199,6 +221,9 @@ class SingleResource(object):
         def _serialize_value(value):
             if isinstance(value, datetime):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            elif support_geo and isinstance(value, WKBElement):
+                value = geoalchemy2.shape.to_shape(value)
+                return {'x': value.x, 'y': value.y}
             else:
                 return value
         attrs = inspect(self.model).attrs
