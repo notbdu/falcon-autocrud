@@ -96,7 +96,10 @@ class CollectionResource(object):
             if comparison == '=':
                 resources = resources.filter(attr == value)
             elif comparison == 'null':
-                resources = resources.filter(attr.is_(None))
+                if value != '0':
+                    resources = resources.filter(attr.is_(None))
+                else:
+                    resources = resources.filter(attr.isnot(None))
             elif comparison == 'startswith':
                 resources = resources.filter(attr.like('{0}%'.format(value)))
             elif comparison == 'contains':

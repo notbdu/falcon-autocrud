@@ -902,6 +902,21 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+        response, = self.simulate_request('/employees', query_string='company_id__null=0', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   5,
+                        'name': 'Company Man',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': initech.id,
+                    }
+                ]
+            }
+        )
+
 
     def test_bad_route_filter(self):
         self.app.add_route('/bad-employees/{foo}/stuff', EmployeeCollectionResource(self.db_session))
