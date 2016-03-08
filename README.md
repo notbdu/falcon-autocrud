@@ -78,6 +78,7 @@ http GET http://localhost/employees?age__lt=25
 http GET http://localhost/employees?age__lte=24
 http GET http://localhost/employees?name__contains=John
 http GET http://localhost/employees?name__startswith=John
+http GET http://localhost/employees?company_id__null=1
 echo '{"name": "Jim"}' | http POST http://localhost/employees
 http GET http://localhost/employees/100
 echo '{"name": "Jim"}' | http PUT http://localhost/employees/100

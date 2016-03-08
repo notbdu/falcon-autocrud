@@ -654,6 +654,9 @@ class AutoCRUDTest(unittest.TestCase):
         self.db_session.add(Employee(id=2, name="Bob", joined=now))
         self.db_session.add(Employee(id=3, name="Jack", joined=now))
         self.db_session.add(Employee(id=4, name="Alice Joplin", joined=now))
+        initech = Company(name="Initech")
+        self.db_session.add(initech)
+        self.db_session.add(Employee(id=5, name="Company Man", joined=now, company=initech))
         self.db_session.commit()
 
         response, = self.simulate_request('/employees', query_string='name=Jim', method='GET', headers={'Accept': 'application/json'})
@@ -732,6 +735,12 @@ class AutoCRUDTest(unittest.TestCase):
                         'name': 'Alice Joplin',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'company_id': None,
+                    },
+                    {
+                        'id':   5,
+                        'name': 'Company Man',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': initech.id,
                     }
                 ]
             }
@@ -747,6 +756,12 @@ class AutoCRUDTest(unittest.TestCase):
                         'name': 'Alice Joplin',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'company_id': None,
+                    },
+                    {
+                        'id':   5,
+                        'name': 'Company Man',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': initech.id,
                     }
                 ]
             }
@@ -838,6 +853,55 @@ class AutoCRUDTest(unittest.TestCase):
 
         response, = self.simulate_request('/companies', query_string='employees=1', method='GET', headers={'Accept': 'application/json'})
         self.assertBadRequest(response)
+
+        response, = self.simulate_request('/employees', query_string='company_id={0}'.format(initech.id), method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   5,
+                        'name': 'Company Man',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': initech.id,
+                    }
+                ]
+            }
+        )
+
+        response, = self.simulate_request('/employees', query_string='company_id__null=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   3,
+                        'name': 'Jack',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    },
+                    {
+                        'id':   4,
+                        'name': 'Alice Joplin',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'company_id': None,
+                    }
+                ]
+            }
+        )
+
 
     def test_bad_route_filter(self):
         self.app.add_route('/bad-employees/{foo}/stuff', EmployeeCollectionResource(self.db_session))
