@@ -248,7 +248,7 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.NoResultFound:
             raise falcon.errors.HTTPNotFound()
         except sqlalchemy.orm.exc.MultipleResultsFound:
-            raise falcon.errors.HTTPInternalServerError()
+            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {
@@ -279,7 +279,7 @@ class SingleResource(object):
             raise falcon.errors.HTTPNotFound()
         elif deleted > 1:
             self.db_session.rollback()
-            raise falcon.errors.HTTPInternalServerError()
+            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
@@ -301,7 +301,7 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.NoResultFound:
             raise falcon.errors.HTTPNotFound()
         except sqlalchemy.orm.exc.MultipleResultsFound:
-            raise falcon.errors.HTTPInternalServerError()
+            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         attributes = self.deserialize(req.context['doc'])
         for key, value in attributes.items():
@@ -343,7 +343,7 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.NoResultFound:
             raise falcon.errors.HTTPNotFound()
         except sqlalchemy.orm.exc.MultipleResultsFound:
-            raise falcon.errors.HTTPInternalServerError()
+            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         attributes = self.deserialize(req.context['doc'])
         for key, value in attributes.items():
