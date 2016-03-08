@@ -7,6 +7,8 @@ import sqlalchemy.orm.exc
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.inspection import inspect
 import sqlalchemy.sql.sqltypes
+import logging
+import sys
 
 try:
     import geoalchemy2.shape
@@ -22,8 +24,11 @@ class CollectionResource(object):
     """
     Provides CRUD facilities for a resource collection.
     """
-    def __init__(self, db_session):
+    def __init__(self, db_session, logger=None):
         self.db_session = db_session
+        if logger is None:
+            logger = logging.getLogger('autocrud')
+        self.logger = logger
 
     def deserialize(self, path_data, body_data):
         mapper      = inspect(self.model)
@@ -32,6 +37,7 @@ class CollectionResource(object):
         for key, value in path_data.items():
             key = getattr(self, 'attr_map', {}).get(key, key)
             if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             attributes[key] = value
 
@@ -70,6 +76,7 @@ class CollectionResource(object):
             key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             resources = resources.filter(attr == value)
         for filter_key, value in req.params.items():
@@ -84,6 +91,7 @@ class CollectionResource(object):
 
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                self.logger.warn('An attribute ({0}) provided for filtering is invalid'.format(key))
                 raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
             if comparison == '=':
                 resources = resources.filter(attr == value)
@@ -167,6 +175,7 @@ class CollectionResource(object):
                 for key, value in kwargs.items():
                     key = getattr(self, 'attr_map', {}).get(key, key)
                     if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                        self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                         raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
                     args[key] = value
                 for key, value in patch_value.items():
@@ -197,8 +206,11 @@ class SingleResource(object):
     """
     Provides CRUD facilities for a single resource.
     """
-    def __init__(self, db_session):
+    def __init__(self, db_session, logger=None):
         self.db_session = db_session
+        if logger is None:
+            logger = logging.getLogger('autocrud')
+        self.logger = logger
 
     def deserialize(self, data):
         mapper      = inspect(self.model)
@@ -240,6 +252,7 @@ class SingleResource(object):
             key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             resources = resources.filter(attr == value)
 
@@ -248,6 +261,7 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.NoResultFound:
             raise falcon.errors.HTTPNotFound()
         except sqlalchemy.orm.exc.MultipleResultsFound:
+            self.logger.error('Programming error: multiple results found for get of model {0}'.format(self.model))
             raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         resp.status = falcon.HTTP_OK
@@ -264,6 +278,7 @@ class SingleResource(object):
             key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             resources = resources.filter(attr == value)
 
@@ -279,6 +294,7 @@ class SingleResource(object):
             raise falcon.errors.HTTPNotFound()
         elif deleted > 1:
             self.db_session.rollback()
+            self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))
             raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         resp.status = falcon.HTTP_OK
@@ -293,6 +309,7 @@ class SingleResource(object):
             key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             resources = resources.filter(attr == value)
 
@@ -301,6 +318,7 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.NoResultFound:
             raise falcon.errors.HTTPNotFound()
         except sqlalchemy.orm.exc.MultipleResultsFound:
+            self.logger.error('Programming error: multiple results found for put of model {0}'.format(self.model))
             raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         attributes = self.deserialize(req.context['doc'])
@@ -335,6 +353,7 @@ class SingleResource(object):
             key = getattr(self, 'attr_map', {}).get(key, key)
             attr = getattr(self.model, key, None)
             if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             resources = resources.filter(attr == value)
 
@@ -343,6 +362,7 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.NoResultFound:
             raise falcon.errors.HTTPNotFound()
         except sqlalchemy.orm.exc.MultipleResultsFound:
+            self.logger.error('Programming error: multiple results found for patch of model {0}'.format(self.model))
             raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         attributes = self.deserialize(req.context['doc'])
