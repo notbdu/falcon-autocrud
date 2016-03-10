@@ -289,6 +289,7 @@ class SingleResource(object):
 
         try:
             deleted = resources.delete()
+            self.db_session.commit()
         except sqlalchemy.exc.IntegrityError as err:
             # As far we I know, this should only be caused by foreign key constraint being violated
 
