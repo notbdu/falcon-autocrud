@@ -139,6 +139,12 @@ class CollectionResource(object):
             # constraint violation
             self.db_session.rollback()
             raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+        except sqlalchemy.exc.ProgrammingError as err:
+            self.db_session.rollback()
+            if err.orig.args[1] == 23505:
+                raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+            else:
+                raise
         except:
             self.db_session.rollback()
             raise
@@ -200,6 +206,12 @@ class CollectionResource(object):
             # constraint violation
             self.db_session.rollback()
             raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+        except sqlalchemy.exc.ProgrammingError as err:
+            self.db_session.rollback()
+            if err.orig.args[1] == 23505:
+                raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+            else:
+                raise
         except:
             self.db_session.rollback()
             raise
@@ -341,6 +353,12 @@ class SingleResource(object):
             # constraint violation
             self.db_session.rollback()
             raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+        except sqlalchemy.exc.ProgrammingError as err:
+            self.db_session.rollback()
+            if err.orig.args[1] == 23505:
+                raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+            else:
+                raise
         except:
             self.db_session.rollback()
             raise
@@ -385,6 +403,12 @@ class SingleResource(object):
             # constraint violation
             self.db_session.rollback()
             raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+        except sqlalchemy.exc.ProgrammingError as err:
+            self.db_session.rollback()
+            if err.orig.args[1] == 23505:
+                raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+            else:
+                raise
         except:
             self.db_session.rollback()
             raise
