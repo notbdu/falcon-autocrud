@@ -100,17 +100,20 @@ class AutoCRUDTest(unittest.TestCase):
 
 
         if self.using_sqlite:
-            # Requires sqlite to be compiled with foreign keys support.  Perhaps we
-            # need to start using Postgres for testing?
-            enable_fk_sql = """
-                PRAGMA foreign_keys = ON;
-            """
-            result = self.db_session.execute(enable_fk_sql)
-            result.close()
+            self.enable_foreign_keys()
 
         Base.metadata.create_all(self.db_engine)
 
         self.srmock = falcon.testing.StartResponseMock()
+
+    def enable_foreign_keys(self):
+        # Requires sqlite to be compiled with foreign keys support.  Perhaps we
+        # need to start using Postgres for testing?
+        enable_fk_sql = """
+            PRAGMA foreign_keys = ON;
+        """
+        result = self.db_session.execute(enable_fk_sql)
+        result.close()
 
     def simulate_request(self, path, *args, **kwargs):
         env = falcon.testing.create_environ(path=path, **kwargs)
@@ -532,6 +535,9 @@ class AutoCRUDTest(unittest.TestCase):
         self.db_session.add(Employee(name="Jim", joined=now, company=initech))
         self.db_session.add(Employee(name="Bob", joined=now))
         self.db_session.commit()
+
+        if self.using_sqlite:
+            self.enable_foreign_keys()
 
         response, = self.simulate_request('/companies/1', method='DELETE', headers={'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '409 Conflict')
