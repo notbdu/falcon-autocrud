@@ -518,7 +518,6 @@ class AutoCRUDTest(unittest.TestCase):
     def test_single_delete_violates_foreign_key(self):
         now = datetime.now()
         initech = Company(name="Initech")
-        self.db_session.begin(subtransactions=True)
         self.db_session.add(initech)
         self.db_session.add(Employee(name="Jim", joined=now, company=initech))
         self.db_session.add(Employee(name="Bob", joined=now))
