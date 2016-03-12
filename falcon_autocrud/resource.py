@@ -304,9 +304,14 @@ class SingleResource(object):
             self.db_session.commit()
         except sqlalchemy.exc.IntegrityError as err:
             # As far we I know, this should only be caused by foreign key constraint being violated
-
-            # No work has been done to rollback, hence no need for a transaction
+            self.db_session.rollback()
             raise falcon.errors.HTTPConflict('Conflict', 'Other content links to this')
+        except sqlalchemy.exc.ProgrammingError as err:
+            self.db_session.rollback()
+            if err.orig.args[1] == '23503':
+                raise falcon.errors.HTTPConflict('Conflict', 'Other content links to this')
+            else:
+                raise
 
         if deleted == 0:
             raise falcon.errors.HTTPNotFound()
