@@ -2,8 +2,10 @@ from datetime import datetime, timedelta
 import falconjsonio.middleware, falconjsonio.schema
 import falcon, falcon.testing
 import json
+import re
 import tempfile
 import unittest
+import os
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
@@ -47,6 +49,17 @@ class OtherEmployeeResource(SingleResource):
     }
 
 class AutoCRUDTest(unittest.TestCase):
+    def tearDown(self):
+        self.db_session.close()
+        self.db_engine.dispose()
+
+        if not self.using_sqlite:
+            Session = sessionmaker()
+            dsn = re.sub('/autocrudtest$', '', self.dsn)
+            tmp_db_engine = create_engine(dsn, isolation_level='AUTOCOMMIT')
+            tmp_db_session = Session(bind=tmp_db_engine)
+            tmp_db_session.execute('DROP DATABASE autocrudtest')
+
     def setUp(self):
         super(AutoCRUDTest, self).setUp()
 
@@ -57,44 +70,45 @@ class AutoCRUDTest(unittest.TestCase):
             ],
         )
 
-        self.db_file    = tempfile.NamedTemporaryFile()
-        Session         = sessionmaker()
-        db_engine       = create_engine('sqlite:///{0}'.format(self.db_file.name))
-        self.db_session = Session(bind=db_engine)
+        Session = sessionmaker()
+        if 'AUTOCRUD_DSN' in os.environ and os.environ['AUTOCRUD_DSN'] != '':
+            self.dsn = os.environ['AUTOCRUD_DSN']
+            self.using_sqlite = True if self.dsn.startswith('sqlite:') else False
+        else:
+            self.db_file = tempfile.NamedTemporaryFile()
+            self.dsn = 'sqlite:///{0}'.format(self.db_file.name)
+            self.using_sqlite = True
+        if self.dsn.startswith('postgresql+pg8000:'):
+            import pg8000
+
+        if not self.using_sqlite:
+            tmp_db_engine = create_engine(self.dsn, isolation_level='AUTOCOMMIT')
+            tmp_db_session = Session(bind=tmp_db_engine)
+            tmp_db_session.execute('CREATE DATABASE autocrudtest')
+
+        if self.dsn.startswith('postgresql+pg8000:'):
+            self.dsn += '/autocrudtest'
+
+        self.db_engine  = create_engine(self.dsn, echo=True)
+        self.db_session = Session(bind=self.db_engine)
+
 
         self.app.add_route('/companies', CompanyCollectionResource(self.db_session))
         self.app.add_route('/companies/{id}', CompanyResource(self.db_session))
         self.app.add_route('/employees', EmployeeCollectionResource(self.db_session))
         self.app.add_route('/employees/{id}', EmployeeResource(self.db_session))
 
-        # Requires sqlite to be compiled with foreign keys support.  Perhaps we
-        # need to start using Postgres for testing?
-        enable_fk_sql = """
-            PRAGMA foreign_keys = ON;
-        """
-        result = self.db_session.execute(enable_fk_sql)
-        result.close()
 
-        create_sql = """
-            CREATE TABLE companies (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                name        TEXT UNIQUE NOT NULL
-            );
-        """
-        result = self.db_session.execute(create_sql)
-        result.close()
+        if self.using_sqlite:
+            # Requires sqlite to be compiled with foreign keys support.  Perhaps we
+            # need to start using Postgres for testing?
+            enable_fk_sql = """
+                PRAGMA foreign_keys = ON;
+            """
+            result = self.db_session.execute(enable_fk_sql)
+            result.close()
 
-        create_sql = """
-            CREATE TABLE employees (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                name        TEXT UNIQUE NOT NULL,
-                joined      DATETIME NOT NULL,
-                company_id  INTEGER,
-                FOREIGN KEY (company_id) REFERENCES companies(id)
-            );
-        """
-        result = self.db_session.execute(create_sql)
-        result.close()
+        Base.metadata.create_all(self.db_engine)
 
         self.srmock = falcon.testing.StartResponseMock()
 
@@ -278,23 +292,21 @@ class AutoCRUDTest(unittest.TestCase):
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '200 OK')
         self.assertEqual(
-            json.loads(response.decode('utf-8')),
-            {
-                'data': [
-                    {
-                        'id':   1,
-                        'name': 'Alfred',
-                        'joined': '2015-11-01T09:30:12Z',
-                        'company_id': None,
-                    },
-                    {
-                        'id':   2,
-                        'name': 'Bob',
-                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                        'company_id': None,
-                    },
-                ]
-            }
+            sorted(json.loads(response.decode('utf-8'))['data'], key=lambda x: x['id']),
+            [
+                {
+                    'id':   1,
+                    'name': 'Alfred',
+                    'joined': '2015-11-01T09:30:12Z',
+                    'company_id': None,
+                },
+                {
+                    'id':   2,
+                    'name': 'Bob',
+                    'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'company_id': None,
+                },
+            ]
         )
 
     def test_put_resource_conflict(self):
@@ -389,23 +401,21 @@ class AutoCRUDTest(unittest.TestCase):
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '200 OK')
         self.assertEqual(
-            json.loads(response.decode('utf-8')),
-            {
-                'data': [
-                    {
-                        'id':   1,
-                        'name': 'Alfred',
-                        'joined': '2015-11-01T09:30:12Z',
-                        'company_id': None,
-                    },
-                    {
-                        'id':   2,
-                        'name': 'Bob',
-                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                        'company_id': None,
-                    },
-                ]
-            }
+            sorted(json.loads(response.decode('utf-8'))['data'], key=lambda x: x['id']),
+            [
+                {
+                    'id':   1,
+                    'name': 'Alfred',
+                    'joined': '2015-11-01T09:30:12Z',
+                    'company_id': None,
+                },
+                {
+                    'id':   2,
+                    'name': 'Bob',
+                    'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'company_id': None,
+                },
+            ]
         )
 
     def test_patch_resource_conflict(self):

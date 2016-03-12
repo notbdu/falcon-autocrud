@@ -8,11 +8,22 @@ Makes RESTful CRUD easier.
 
 ## Quick start for contributing
 
-    virtualenv -p `which python3` virtualenv
-    source virtualenv/bin/activate
-    pip install -r requirements.txt
-    pip install -r dev_requirements.txt
-    nosetests
+```
+virtualenv -p `which python3` virtualenv
+source virtualenv/bin/activate
+pip install -r requirements.txt
+pip install -r dev_requirements.txt
+nosetests
+```
+
+This runs the tests with SQLite.  To run the tests with Postgres (using
+pg8000), you must have a Postgres server running, and a postgres user with
+permission to create databases:
+
+```
+export AUTOCRUD_DSN=postgresql+pg8000://myuser:mypassword@localhost:5432
+nosetests
+```
 
 ## Usage
 
