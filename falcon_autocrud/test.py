@@ -133,13 +133,13 @@ class AutoCRUDTest(unittest.TestCase):
         self.assertEqual(self.srmock.status, '404 Not Found')
         self.assertEqual(response, [])
 
-    def assertConflict(self, response):
+    def assertConflict(self, response, description='Unique constraint violated'):
         self.assertEqual(self.srmock.status, '409 Conflict')
         self.assertEqual(
             json.loads(response.decode('utf-8')),
             {
                 'title':        'Conflict',
-                'description':  'Unique constraint violated',
+                'description':  description,
             }
         )
 
@@ -419,6 +419,27 @@ class AutoCRUDTest(unittest.TestCase):
                     'company_id': None,
                 },
             ]
+        )
+
+        body = json.dumps({
+            'name': 'Jack',
+            'joined': '2014-11-01T09:30:12Z',
+        })
+        response, = self.simulate_request('/employees/1', query_string='name=Bob', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertConflict(response, 'Resource found but conditions violated')
+
+        response, = self.simulate_request('/employees/1', query_string='name=Alfred', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   1,
+                    'name': 'Jack',
+                    'joined': '2014-11-01T09:30:12Z',
+                    'company_id': None,
+                },
+            }
         )
 
     def test_patch_resource_conflict(self):

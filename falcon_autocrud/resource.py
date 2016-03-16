@@ -20,16 +20,55 @@ except ImportError:
     support_geo = False
 
 
-class CollectionResource(object):
-    """
-    Provides CRUD facilities for a resource collection.
-    """
+class BaseResource(object):
     def __init__(self, db_session, logger=None):
         self.db_session = db_session
         if logger is None:
             logger = logging.getLogger('autocrud')
         self.logger = logger
 
+    def filter_by_params(self, resources, params):
+        for filter_key, value in params.items():
+            filter_parts = filter_key.split('__')
+            key = filter_parts[0]
+            if len(filter_parts) == 1:
+                comparison = '='
+            elif len(filter_parts) == 2:
+                comparison = filter_parts[1]
+            else:
+                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
+
+            attr = getattr(self.model, key, None)
+            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                self.logger.warn('An attribute ({0}) provided for filtering is invalid'.format(key))
+                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
+            if comparison == '=':
+                resources = resources.filter(attr == value)
+            elif comparison == 'null':
+                if value != '0':
+                    resources = resources.filter(attr.is_(None))
+                else:
+                    resources = resources.filter(attr.isnot(None))
+            elif comparison == 'startswith':
+                resources = resources.filter(attr.like('{0}%'.format(value)))
+            elif comparison == 'contains':
+                resources = resources.filter(attr.like('%{0}%'.format(value)))
+            elif comparison == 'lt':
+                resources = resources.filter(attr < value)
+            elif comparison == 'lte':
+                resources = resources.filter(attr <= value)
+            elif comparison == 'gt':
+                resources = resources.filter(attr > value)
+            elif comparison == 'gte':
+                resources = resources.filter(attr >= value)
+            else:
+                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
+        return resources
+
+class CollectionResource(BaseResource):
+    """
+    Provides CRUD facilities for a resource collection.
+    """
     def deserialize(self, path_data, body_data):
         mapper      = inspect(self.model)
         attributes  = {}
@@ -79,41 +118,8 @@ class CollectionResource(object):
                 self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             resources = resources.filter(attr == value)
-        for filter_key, value in req.params.items():
-            filter_parts = filter_key.split('__')
-            key = filter_parts[0]
-            if len(filter_parts) == 1:
-                comparison = '='
-            elif len(filter_parts) == 2:
-                comparison = filter_parts[1]
-            else:
-                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
 
-            attr = getattr(self.model, key, None)
-            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                self.logger.warn('An attribute ({0}) provided for filtering is invalid'.format(key))
-                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
-            if comparison == '=':
-                resources = resources.filter(attr == value)
-            elif comparison == 'null':
-                if value != '0':
-                    resources = resources.filter(attr.is_(None))
-                else:
-                    resources = resources.filter(attr.isnot(None))
-            elif comparison == 'startswith':
-                resources = resources.filter(attr.like('{0}%'.format(value)))
-            elif comparison == 'contains':
-                resources = resources.filter(attr.like('%{0}%'.format(value)))
-            elif comparison == 'lt':
-                resources = resources.filter(attr < value)
-            elif comparison == 'lte':
-                resources = resources.filter(attr <= value)
-            elif comparison == 'gt':
-                resources = resources.filter(attr > value)
-            elif comparison == 'gte':
-                resources = resources.filter(attr >= value)
-            else:
-                raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
+        resources = self.filter_by_params(resources, req.params)
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {
@@ -219,16 +225,10 @@ class CollectionResource(object):
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
 
-class SingleResource(object):
+class SingleResource(BaseResource):
     """
     Provides CRUD facilities for a single resource.
     """
-    def __init__(self, db_session, logger=None):
-        self.db_session = db_session
-        if logger is None:
-            logger = logging.getLogger('autocrud')
-        self.logger = logger
-
     def deserialize(self, data):
         mapper      = inspect(self.model)
         attributes  = {}
@@ -393,6 +393,13 @@ class SingleResource(object):
         except sqlalchemy.orm.exc.MultipleResultsFound:
             self.logger.error('Programming error: multiple results found for patch of model {0}'.format(self.model))
             raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+
+        resources = self.filter_by_params(resources, req.params)
+
+        try:
+            resource = resources.one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
 
         attributes = self.deserialize(req.context['doc'])
         for key, value in attributes.items():
