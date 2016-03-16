@@ -65,6 +65,20 @@ class BaseResource(object):
                 raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
         return resources
 
+    def serialize(self, resource):
+        def _serialize_value(value):
+            if isinstance(value, datetime):
+                return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            elif support_geo and isinstance(value, WKBElement):
+                value = geoalchemy2.shape.to_shape(value)
+                return {'x': value.x, 'y': value.y}
+            else:
+                return value
+        attrs = inspect(self.model).attrs
+        return {
+            attr: _serialize_value(getattr(resource, attr)) for attr in attrs.keys() if isinstance(attrs[attr], ColumnProperty)
+        }
+
 class CollectionResource(BaseResource):
     """
     Provides CRUD facilities for a resource collection.
@@ -91,20 +105,6 @@ class CollectionResource(BaseResource):
             else:
                 attributes[key] = value
         return attributes
-
-    def serialize(self, resource):
-        def _serialize_value(value):
-            if isinstance(value, datetime):
-                return value.strftime('%Y-%m-%dT%H:%M:%SZ')
-            elif support_geo and isinstance(value, WKBElement):
-                value = geoalchemy2.shape.to_shape(value)
-                return {'x': value.x, 'y': value.y}
-            else:
-                return value
-        attrs = inspect(self.model).attrs
-        return {
-            attr: _serialize_value(getattr(resource, attr)) for attr in attrs.keys() if isinstance(attrs[attr], ColumnProperty)
-        }
 
     def on_get(self, req, resp, *args, **kwargs):
         """
@@ -245,20 +245,6 @@ class SingleResource(BaseResource):
                 attributes[key] = value
 
         return attributes
-
-    def serialize(self, resource):
-        def _serialize_value(value):
-            if isinstance(value, datetime):
-                return value.strftime('%Y-%m-%dT%H:%M:%SZ')
-            elif support_geo and isinstance(value, WKBElement):
-                value = geoalchemy2.shape.to_shape(value)
-                return {'x': value.x, 'y': value.y}
-            else:
-                return value
-        attrs = inspect(self.model).attrs
-        return {
-            attr: _serialize_value(getattr(resource, attr)) for attr in attrs.keys() if isinstance(attrs[attr], ColumnProperty)
-        }
 
     def on_get(self, req, resp, *args, **kwargs):
         """
