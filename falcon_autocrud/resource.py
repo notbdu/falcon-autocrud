@@ -97,7 +97,7 @@ class CollectionResource(BaseResource):
         for key, value in body_data.items():
             column = mapper.columns[key]
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
-                attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+                attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
             elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POINT':
                 point           = Point(value['x'], value['y'])
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
@@ -236,7 +236,7 @@ class SingleResource(BaseResource):
         for key, value in data.items():
             column = mapper.columns[key]
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
-                attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+                attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
             elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POINT':
                 point           = Point(value['x'], value['y'])
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail

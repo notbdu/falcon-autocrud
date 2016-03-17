@@ -27,6 +27,7 @@ class Employee(Base):
     id          = Column(Integer, primary_key=True)
     name        = Column(String(50), unique=True)
     joined      = Column(DateTime())
+    left        = Column(DateTime(), nullable=True)
     company_id  = Column(Integer, ForeignKey('companies.id'), nullable=True)
     company     = relationship('Company', back_populates='employees')
 
@@ -174,6 +175,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -192,12 +194,14 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     }
                 ]
@@ -209,6 +213,7 @@ class AutoCRUDTest(unittest.TestCase):
         body = json.dumps({
             'name': 'Alfred',
             'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'left': None,
         })
         response, = self.simulate_request('/employees', method='POST', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '201 Created')
@@ -219,6 +224,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -234,6 +240,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Alfred',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -262,6 +269,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Alfred',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -277,6 +285,7 @@ class AutoCRUDTest(unittest.TestCase):
         body = json.dumps({
             'name':     'Alfred',
             'joined':   '2015-11-01T09:30:12Z',
+            'left':     None,
         })
         response, = self.simulate_request('/employees/1', method='PUT', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '200 OK')
@@ -287,6 +296,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': '2015-11-01T09:30:12Z',
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -301,12 +311,14 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': '2015-11-01T09:30:12Z',
+                    'left': None,
                     'company_id': None,
                 },
                 {
                     'id':   2,
                     'name': 'Bob',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'left': None,
                     'company_id': None,
                 },
             ]
@@ -336,12 +348,14 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -371,6 +385,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -384,8 +399,9 @@ class AutoCRUDTest(unittest.TestCase):
         self.db_session.commit()
 
         body = json.dumps({
-            'name': 'Alfred',
-            'joined': '2015-11-01T09:30:12Z',
+            'name':     'Alfred',
+            'joined':   '2015-11-01T09:30:12Z',
+            'left':     None,
         })
         response, = self.simulate_request('/employees/1', method='PATCH', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '200 OK')
@@ -396,6 +412,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': '2015-11-01T09:30:12Z',
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -410,12 +427,14 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': '2015-11-01T09:30:12Z',
+                    'left': None,
                     'company_id': None,
                 },
                 {
                     'id':   2,
                     'name': 'Bob',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'left': None,
                     'company_id': None,
                 },
             ]
@@ -437,6 +456,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Jack',
                     'joined': '2014-11-01T09:30:12Z',
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -466,12 +486,14 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -501,6 +523,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -533,6 +556,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -592,12 +616,14 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': 1,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -630,18 +656,21 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': 1,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   3,
                         'name': 'Alfred',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -662,6 +691,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Jim',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -675,6 +705,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   2,
                     'name': 'Bob',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -704,6 +735,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -719,6 +751,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     }
                 ]
@@ -734,6 +767,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -749,6 +783,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     }
                 ]
@@ -770,12 +805,14 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   4,
                         'name': 'Alice Joplin',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   5,
                         'name': 'Company Man',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': initech.id,
                     }
                 ]
@@ -791,12 +828,14 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   4,
                         'name': 'Alice Joplin',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   5,
                         'name': 'Company Man',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': initech.id,
                     }
                 ]
@@ -812,6 +851,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     }
                 ]
@@ -827,6 +867,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     }
                 ]
@@ -842,18 +883,21 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   3,
                         'name': 'Jack',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   4,
                         'name': 'Alice Joplin',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     }
                 ]
@@ -869,12 +913,14 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   3,
                         'name': 'Jack',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     }
                 ]
@@ -899,6 +945,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   5,
                         'name': 'Company Man',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': initech.id,
                     }
                 ]
@@ -914,24 +961,28 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   3,
                         'name': 'Jack',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   4,
                         'name': 'Alice Joplin',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     }
                 ]
@@ -947,6 +998,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   5,
                         'name': 'Company Man',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': initech.id,
                     }
                 ]
@@ -1012,6 +1064,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Jim',
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -1030,6 +1083,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Alfred',
                     'joined': '2015-11-01T09:30:12Z',
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -1048,6 +1102,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'id':   1,
                     'name': 'Bob',
                     'joined': '2015-12-01T09:30:12Z',
+                    'left': None,
                     'company_id': None,
                 },
             }
@@ -1084,12 +1139,14 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -1114,18 +1171,21 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   3,
                         'name': 'Jack',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
@@ -1151,18 +1211,21 @@ class AutoCRUDTest(unittest.TestCase):
                         'id':   1,
                         'name': 'Jim',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   2,
                         'name': 'Bob',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                     {
                         'id':   3,
                         'name': 'Jack',
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
                         'company_id': None,
                     },
                 ]
