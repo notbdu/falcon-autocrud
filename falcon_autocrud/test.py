@@ -30,7 +30,7 @@ class Employee(Base):
     left        = Column(DateTime(), nullable=True)
     company_id  = Column(Integer, ForeignKey('companies.id'), nullable=True)
     company     = relationship('Company', back_populates='employees')
-    pay_rate    = Column(Numeric(2), nullable=True)
+    pay_rate    = Column(Numeric(scale=4), nullable=True)
     start_time  = Column(Time, nullable=True)
     lunch_start = Column(Time, nullable=True)
     end_time    = Column(Time, nullable=True)
