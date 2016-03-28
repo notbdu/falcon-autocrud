@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import os
 from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, Numeric, String, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -31,6 +31,9 @@ class Employee(Base):
     company_id  = Column(Integer, ForeignKey('companies.id'), nullable=True)
     company     = relationship('Company', back_populates='employees')
     pay_rate    = Column(Numeric(2), nullable=True)
+    start_time  = Column(Time, nullable=True)
+    lunch_start = Column(Time, nullable=True)
+    end_time    = Column(Time, nullable=True)
 
 class CompanyCollectionResource(CollectionResource):
     model = Company
@@ -179,6 +182,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -199,6 +205,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -207,6 +216,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -219,6 +231,9 @@ class AutoCRUDTest(unittest.TestCase):
             'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'left': None,
             'pay_rate': 25.40,
+            'start_time': '09:00:00',
+            'lunch_start': None,
+            'end_time': '17:00:30',
         })
         response, = self.simulate_request('/employees', method='POST', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '201 Created')
@@ -232,6 +247,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': 25.40,
+                    'start_time': '09:00:00',
+                    'lunch_start': None,
+                    'end_time': '17:00:30',
                 },
             }
         )
@@ -249,6 +267,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': 25.40,
+                        'start_time': '09:00:00',
+                        'lunch_start': None,
+                        'end_time': '17:00:30',
                     },
                 ]
             }
@@ -279,6 +300,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -307,6 +331,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             }
         )
@@ -323,6 +350,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
                 {
                     'id':   2,
@@ -331,6 +361,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             ]
         )
@@ -362,6 +395,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -370,6 +406,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -401,6 +440,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -429,6 +471,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             }
         )
@@ -445,6 +490,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
                 {
                     'id':   2,
@@ -453,6 +501,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             ]
         )
@@ -476,6 +527,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             }
         )
@@ -507,6 +561,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -515,6 +572,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -546,6 +606,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -580,6 +643,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -641,6 +707,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': 1,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -649,6 +718,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -683,6 +755,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': 1,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -691,6 +766,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   3,
@@ -699,6 +777,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -721,6 +802,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             }
         )
@@ -736,6 +820,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             }
         )
@@ -767,6 +854,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -784,6 +874,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -801,6 +894,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -818,6 +914,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -841,6 +940,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   5,
@@ -849,6 +951,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': initech.id,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -866,6 +971,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   5,
@@ -874,6 +982,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': initech.id,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -891,6 +1002,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -908,6 +1022,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -925,6 +1042,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   3,
@@ -933,6 +1053,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   4,
@@ -941,6 +1064,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -958,6 +1084,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   3,
@@ -966,6 +1095,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -992,6 +1124,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': initech.id,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -1009,6 +1144,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -1017,6 +1155,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   3,
@@ -1025,6 +1166,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   4,
@@ -1033,6 +1177,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -1050,6 +1197,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': initech.id,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     }
                 ]
             }
@@ -1117,6 +1267,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             }
         )
@@ -1137,6 +1290,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             }
         )
@@ -1157,6 +1313,9 @@ class AutoCRUDTest(unittest.TestCase):
                     'left': None,
                     'company_id': None,
                     'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
                 },
             }
         )
@@ -1195,6 +1354,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -1203,6 +1365,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -1229,6 +1394,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -1237,6 +1405,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   3,
@@ -1245,6 +1416,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }
@@ -1272,6 +1446,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   2,
@@ -1280,6 +1457,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                     {
                         'id':   3,
@@ -1288,6 +1468,9 @@ class AutoCRUDTest(unittest.TestCase):
                         'left': None,
                         'company_id': None,
                         'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
                     },
                 ]
             }

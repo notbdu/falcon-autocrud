@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal
 import falcon
 import falcon.errors
@@ -70,6 +70,8 @@ class BaseResource(object):
         def _serialize_value(value):
             if isinstance(value, datetime):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            elif isinstance(value, time):
+                return value.isoformat()
             elif isinstance(value, Decimal):
                 return float(value)
             elif support_geo and isinstance(value, WKBElement):
@@ -101,6 +103,12 @@ class CollectionResource(BaseResource):
             column = mapper.columns[key]
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
+            elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):
+                if value is not None:
+                    hour, minute, second = value.split(':')
+                    attributes[key] = time(int(hour), int(minute), int(second))
+                else:
+                    attributes[key] = None
             elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POINT':
                 point           = Point(value['x'], value['y'])
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
@@ -240,6 +248,12 @@ class SingleResource(BaseResource):
             column = mapper.columns[key]
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
+            elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):
+                if value is not None:
+                    hour, minute, second = value.split(':')
+                    attributes[key] = time(int(hour), int(minute), int(second))
+                else:
+                    attributes[key] = None
             elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POINT':
                 point           = Point(value['x'], value['y'])
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
