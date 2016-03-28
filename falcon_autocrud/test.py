@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import os
 from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -30,6 +30,7 @@ class Employee(Base):
     left        = Column(DateTime(), nullable=True)
     company_id  = Column(Integer, ForeignKey('companies.id'), nullable=True)
     company     = relationship('Company', back_populates='employees')
+    pay_rate    = Column(Numeric(2), nullable=True)
 
 class CompanyCollectionResource(CollectionResource):
     model = Company
@@ -177,6 +178,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -196,6 +198,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -203,6 +206,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -214,6 +218,7 @@ class AutoCRUDTest(unittest.TestCase):
             'name': 'Alfred',
             'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'left': None,
+            'pay_rate': 25.40,
         })
         response, = self.simulate_request('/employees', method='POST', body=body, headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '201 Created')
@@ -226,6 +231,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'left': None,
                     'company_id': None,
+                    'pay_rate': 25.40,
                 },
             }
         )
@@ -242,6 +248,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': 25.40,
                     },
                 ]
             }
@@ -271,6 +278,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -298,6 +306,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': '2015-11-01T09:30:12Z',
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             }
         )
@@ -313,6 +322,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': '2015-11-01T09:30:12Z',
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
                 {
                     'id':   2,
@@ -320,6 +330,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             ]
         )
@@ -350,6 +361,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -357,6 +369,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -387,6 +400,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -414,6 +428,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': '2015-11-01T09:30:12Z',
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             }
         )
@@ -429,6 +444,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': '2015-11-01T09:30:12Z',
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
                 {
                     'id':   2,
@@ -436,6 +452,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             ]
         )
@@ -458,6 +475,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': '2014-11-01T09:30:12Z',
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             }
         )
@@ -488,6 +506,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -495,6 +514,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -525,6 +545,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': then.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -558,6 +579,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -618,6 +640,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': 1,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -625,6 +648,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -658,6 +682,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': 1,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -665,6 +690,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   3,
@@ -672,6 +698,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -693,6 +720,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             }
         )
@@ -707,6 +735,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             }
         )
@@ -737,6 +766,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -753,6 +783,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -769,6 +800,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -785,6 +817,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -807,6 +840,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   5,
@@ -814,6 +848,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': initech.id,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -830,6 +865,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   5,
@@ -837,6 +873,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': initech.id,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -853,6 +890,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -869,6 +907,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -885,6 +924,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   3,
@@ -892,6 +932,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   4,
@@ -899,6 +940,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -915,6 +957,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   3,
@@ -922,6 +965,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -947,6 +991,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': initech.id,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -963,6 +1008,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -970,6 +1016,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   3,
@@ -977,6 +1024,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   4,
@@ -984,6 +1032,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -1000,6 +1049,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': initech.id,
+                        'pay_rate': None,
                     }
                 ]
             }
@@ -1066,6 +1116,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             }
         )
@@ -1085,6 +1136,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': '2015-11-01T09:30:12Z',
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             }
         )
@@ -1104,6 +1156,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'joined': '2015-12-01T09:30:12Z',
                     'left': None,
                     'company_id': None,
+                    'pay_rate': None,
                 },
             }
         )
@@ -1141,6 +1194,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -1148,6 +1202,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -1173,6 +1228,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -1180,6 +1236,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   3,
@@ -1187,6 +1244,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }
@@ -1213,6 +1271,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   2,
@@ -1220,6 +1279,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                     {
                         'id':   3,
@@ -1227,6 +1287,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         'left': None,
                         'company_id': None,
+                        'pay_rate': None,
                     },
                 ]
             }

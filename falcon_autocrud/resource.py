@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 import falcon
 import falcon.errors
 import json
@@ -69,6 +70,8 @@ class BaseResource(object):
         def _serialize_value(value):
             if isinstance(value, datetime):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            elif isinstance(value, Decimal):
+                return float(value)
             elif support_geo and isinstance(value, WKBElement):
                 value = geoalchemy2.shape.to_shape(value)
                 return {'x': value.x, 'y': value.y}
