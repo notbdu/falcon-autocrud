@@ -11,6 +11,8 @@ import sqlalchemy.sql.sqltypes
 import logging
 import sys
 
+from .db_session import session_scope
+
 try:
     import geoalchemy2.shape
     from geoalchemy2.elements import WKBElement
@@ -22,8 +24,8 @@ except ImportError:
 
 
 class BaseResource(object):
-    def __init__(self, db_session, logger=None):
-        self.db_session = db_session
+    def __init__(self, db_engine, logger=None):
+        self.db_engine = db_engine
         if logger is None:
             logger = logging.getLogger('autocrud')
         self.logger = logger
@@ -121,23 +123,24 @@ class CollectionResource(BaseResource):
         """
         Return a collection of items.
         """
-        resources = self.db_session.query(self.model)
-        for key, value in kwargs.items():
-            key = getattr(self, 'attr_map', {}).get(key, key)
-            attr = getattr(self.model, key, None)
-            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
-                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-            resources = resources.filter(attr == value)
+        with session_scope(self.db_engine) as db_session:
+            resources = db_session.query(self.model)
+            for key, value in kwargs.items():
+                key = getattr(self, 'attr_map', {}).get(key, key)
+                attr = getattr(self.model, key, None)
+                if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                    self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+                    raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                resources = resources.filter(attr == value)
 
-        resources = self.filter_by_params(resources, req.params)
+            resources = self.filter_by_params(resources, req.params)
 
-        resp.status = falcon.HTTP_OK
-        req.context['result'] = {
-            'data': [
-                self.serialize(resource) for resource in resources
-            ],
-        }
+            resp.status = falcon.HTTP_OK
+            req.context['result'] = {
+                'data': [
+                    self.serialize(resource) for resource in resources
+                ],
+            }
 
     def on_post(self, req, resp, *args, **kwargs):
         """
@@ -146,30 +149,31 @@ class CollectionResource(BaseResource):
         attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
         resource = self.model(**attributes)
 
-        self.db_session.add(resource)
-        try:
-            self.db_session.commit()
-        except sqlalchemy.exc.IntegrityError as err:
-            # Cases such as unallowed NULL value should have been checked
-            # before we got here (e.g. validate against schema
-            # using falconjsonio) - therefore assume this is a UNIQUE
-            # constraint violation
-            self.db_session.rollback()
-            raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
-        except sqlalchemy.exc.ProgrammingError as err:
-            self.db_session.rollback()
-            if err.orig.args[1] == '23505':
+        with session_scope(self.db_engine) as db_session:
+            db_session.add(resource)
+            try:
+                db_session.commit()
+            except sqlalchemy.exc.IntegrityError as err:
+                # Cases such as unallowed NULL value should have been checked
+                # before we got here (e.g. validate against schema
+                # using falconjsonio) - therefore assume this is a UNIQUE
+                # constraint violation
+                db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
-            else:
+            except sqlalchemy.exc.ProgrammingError as err:
+                db_session.rollback()
+                if err.orig.args[1] == '23505':
+                    raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+                else:
+                    raise
+            except:
+                db_session.rollback()
                 raise
-        except:
-            self.db_session.rollback()
-            raise
 
-        resp.status = falcon.HTTP_CREATED
-        req.context['result'] = {
-            'data': self.serialize(resource),
-        }
+            resp.status = falcon.HTTP_CREATED
+            req.context['result'] = {
+                'data': self.serialize(resource),
+            }
 
     def on_patch(self, req, resp, *args, **kwargs):
         """
@@ -188,50 +192,51 @@ class CollectionResource(BaseResource):
         mapper  = inspect(self.model)
         patches = req.context['doc']['patches']
 
-        for index, patch in enumerate(patches):
-            # Only support adding entities in a collection patch, for now
-            if 'op' not in patch or patch['op'] not in ['add']:
-                raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid'.format(index))
-            if patch['op'] == 'add':
-                if 'path' not in patch or patch['path'] != '/':
-                    raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid for op {1}'.format(index, patch['op']))
-                try:
-                    patch_value = patch['value']
-                except KeyError:
-                    raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid for op {1}'.format(index, patch['op']))
-                args = {}
-                for key, value in kwargs.items():
-                    key = getattr(self, 'attr_map', {}).get(key, key)
-                    if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                        self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
-                        raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-                    args[key] = value
-                for key, value in patch_value.items():
-                    if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
-                        args[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
-                    else:
+        with session_scope(self.db_engine) as db_session:
+            for index, patch in enumerate(patches):
+                # Only support adding entities in a collection patch, for now
+                if 'op' not in patch or patch['op'] not in ['add']:
+                    raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid'.format(index))
+                if patch['op'] == 'add':
+                    if 'path' not in patch or patch['path'] != '/':
+                        raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid for op {1}'.format(index, patch['op']))
+                    try:
+                        patch_value = patch['value']
+                    except KeyError:
+                        raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid for op {1}'.format(index, patch['op']))
+                    args = {}
+                    for key, value in kwargs.items():
+                        key = getattr(self, 'attr_map', {}).get(key, key)
+                        if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                            self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+                            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
                         args[key] = value
-                resource = self.model(**args)
-                self.db_session.add(resource)
+                    for key, value in patch_value.items():
+                        if isinstance(mapper.columns[key].type, sqlalchemy.sql.sqltypes.DateTime):
+                            args[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+                        else:
+                            args[key] = value
+                    resource = self.model(**args)
+                    db_session.add(resource)
 
-        try:
-            self.db_session.commit()
-        except sqlalchemy.exc.IntegrityError as err:
-            # Cases such as unallowed NULL value should have been checked
-            # before we got here (e.g. validate against schema
-            # using falconjsonio) - therefore assume this is a UNIQUE
-            # constraint violation
-            self.db_session.rollback()
-            raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
-        except sqlalchemy.exc.ProgrammingError as err:
-            self.db_session.rollback()
-            if err.orig.args[1] == '23505':
+            try:
+                db_session.commit()
+            except sqlalchemy.exc.IntegrityError as err:
+                # Cases such as unallowed NULL value should have been checked
+                # before we got here (e.g. validate against schema
+                # using falconjsonio) - therefore assume this is a UNIQUE
+                # constraint violation
+                db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
-            else:
+            except sqlalchemy.exc.ProgrammingError as err:
+                db_session.rollback()
+                if err.orig.args[1] == '23505':
+                    raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+                else:
+                    raise
+            except:
+                db_session.rollback()
                 raise
-        except:
-            self.db_session.rollback()
-            raise
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
@@ -267,61 +272,63 @@ class SingleResource(BaseResource):
         """
         Return a single item.
         """
-        resources = self.db_session.query(self.model)
-        for key, value in kwargs.items():
-            key = getattr(self, 'attr_map', {}).get(key, key)
-            attr = getattr(self.model, key, None)
-            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+        with session_scope(self.db_engine) as db_session:
+            resources = db_session.query(self.model)
+            for key, value in kwargs.items():
+                key = getattr(self, 'attr_map', {}).get(key, key)
+                attr = getattr(self.model, key, None)
+                if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                    self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+                    raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                resources = resources.filter(attr == value)
+
+            try:
+                resource = resources.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise falcon.errors.HTTPNotFound()
+            except sqlalchemy.orm.exc.MultipleResultsFound:
+                self.logger.error('Programming error: multiple results found for get of model {0}'.format(self.model))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-            resources = resources.filter(attr == value)
 
-        try:
-            resource = resources.one()
-        except sqlalchemy.orm.exc.NoResultFound:
-            raise falcon.errors.HTTPNotFound()
-        except sqlalchemy.orm.exc.MultipleResultsFound:
-            self.logger.error('Programming error: multiple results found for get of model {0}'.format(self.model))
-            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-
-        resp.status = falcon.HTTP_OK
-        req.context['result'] = {
-            'data': self.serialize(resource),
-        }
+            resp.status = falcon.HTTP_OK
+            req.context['result'] = {
+                'data': self.serialize(resource),
+            }
 
     def on_delete(self, req, resp, *args, **kwargs):
         """
         Delete a single item.
         """
-        resources = self.db_session.query(self.model)
-        for key, value in kwargs.items():
-            key = getattr(self, 'attr_map', {}).get(key, key)
-            attr = getattr(self.model, key, None)
-            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
-                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-            resources = resources.filter(attr == value)
+        with session_scope(self.db_engine) as db_session:
+            resources = db_session.query(self.model)
+            for key, value in kwargs.items():
+                key = getattr(self, 'attr_map', {}).get(key, key)
+                attr = getattr(self.model, key, None)
+                if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                    self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+                    raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                resources = resources.filter(attr == value)
 
-        try:
-            deleted = resources.delete()
-            self.db_session.commit()
-        except sqlalchemy.exc.IntegrityError as err:
-            # As far we I know, this should only be caused by foreign key constraint being violated
-            self.db_session.rollback()
-            raise falcon.errors.HTTPConflict('Conflict', 'Other content links to this')
-        except sqlalchemy.exc.ProgrammingError as err:
-            self.db_session.rollback()
-            if err.orig.args[1] == '23503':
+            try:
+                deleted = resources.delete()
+                db_session.commit()
+            except sqlalchemy.exc.IntegrityError as err:
+                # As far we I know, this should only be caused by foreign key constraint being violated
+                db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Other content links to this')
-            else:
-                raise
+            except sqlalchemy.exc.ProgrammingError as err:
+                db_session.rollback()
+                if err.orig.args[1] == '23503':
+                    raise falcon.errors.HTTPConflict('Conflict', 'Other content links to this')
+                else:
+                    raise
 
-        if deleted == 0:
-            raise falcon.errors.HTTPNotFound()
-        elif deleted > 1:
-            self.db_session.rollback()
-            self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))
-            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            if deleted == 0:
+                raise falcon.errors.HTTPNotFound()
+            elif deleted > 1:
+                db_session.rollback()
+                self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
@@ -330,105 +337,107 @@ class SingleResource(BaseResource):
         """
         Update an item in the collection.
         """
-        resources = self.db_session.query(self.model)
-        for key, value in kwargs.items():
-            key = getattr(self, 'attr_map', {}).get(key, key)
-            attr = getattr(self.model, key, None)
-            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+        with session_scope(self.db_engine) as db_session:
+            resources = db_session.query(self.model)
+            for key, value in kwargs.items():
+                key = getattr(self, 'attr_map', {}).get(key, key)
+                attr = getattr(self.model, key, None)
+                if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                    self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+                    raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                resources = resources.filter(attr == value)
+
+            try:
+                resource = resources.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise falcon.errors.HTTPNotFound()
+            except sqlalchemy.orm.exc.MultipleResultsFound:
+                self.logger.error('Programming error: multiple results found for put of model {0}'.format(self.model))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-            resources = resources.filter(attr == value)
 
-        try:
-            resource = resources.one()
-        except sqlalchemy.orm.exc.NoResultFound:
-            raise falcon.errors.HTTPNotFound()
-        except sqlalchemy.orm.exc.MultipleResultsFound:
-            self.logger.error('Programming error: multiple results found for put of model {0}'.format(self.model))
-            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            attributes = self.deserialize(req.context['doc'])
+            for key, value in attributes.items():
+                setattr(resource, key, value)
 
-        attributes = self.deserialize(req.context['doc'])
-        for key, value in attributes.items():
-            setattr(resource, key, value)
-
-        self.db_session.add(resource)
-        try:
-            self.db_session.commit()
-        except sqlalchemy.exc.IntegrityError as err:
-            # Cases such as unallowed NULL value should have been checked
-            # before we got here (e.g. validate against schema
-            # using falconjsonio) - therefore assume this is a UNIQUE
-            # constraint violation
-            self.db_session.rollback()
-            raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
-        except sqlalchemy.exc.ProgrammingError as err:
-            self.db_session.rollback()
-            if err.orig.args[1] == '23505':
+            db_session.add(resource)
+            try:
+                db_session.commit()
+            except sqlalchemy.exc.IntegrityError as err:
+                # Cases such as unallowed NULL value should have been checked
+                # before we got here (e.g. validate against schema
+                # using falconjsonio) - therefore assume this is a UNIQUE
+                # constraint violation
+                db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
-            else:
+            except sqlalchemy.exc.ProgrammingError as err:
+                db_session.rollback()
+                if err.orig.args[1] == '23505':
+                    raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+                else:
+                    raise
+            except:
+                db_session.rollback()
                 raise
-        except:
-            self.db_session.rollback()
-            raise
 
-        resp.status = falcon.HTTP_OK
-        req.context['result'] = {
-            'data': self.serialize(resource),
-        }
+            resp.status = falcon.HTTP_OK
+            req.context['result'] = {
+                'data': self.serialize(resource),
+            }
 
     def on_patch(self, req, resp, *args, **kwargs):
         """
         Update part of an item in the collection.
         """
-        resources = self.db_session.query(self.model)
-        for key, value in kwargs.items():
-            key = getattr(self, 'attr_map', {}).get(key, key)
-            attr = getattr(self.model, key, None)
-            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+        with session_scope(self.db_engine) as db_session:
+            resources = db_session.query(self.model)
+            for key, value in kwargs.items():
+                key = getattr(self, 'attr_map', {}).get(key, key)
+                attr = getattr(self.model, key, None)
+                if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                    self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+                    raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                resources = resources.filter(attr == value)
+
+            try:
+                resource = resources.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise falcon.errors.HTTPNotFound()
+            except sqlalchemy.orm.exc.MultipleResultsFound:
+                self.logger.error('Programming error: multiple results found for patch of model {0}'.format(self.model))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-            resources = resources.filter(attr == value)
 
-        try:
-            resource = resources.one()
-        except sqlalchemy.orm.exc.NoResultFound:
-            raise falcon.errors.HTTPNotFound()
-        except sqlalchemy.orm.exc.MultipleResultsFound:
-            self.logger.error('Programming error: multiple results found for patch of model {0}'.format(self.model))
-            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            resources = self.filter_by_params(resources, req.params)
 
-        resources = self.filter_by_params(resources, req.params)
+            try:
+                resource = resources.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
 
-        try:
-            resource = resources.one()
-        except sqlalchemy.orm.exc.NoResultFound:
-            raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
+            attributes = self.deserialize(req.context['doc'])
+            for key, value in attributes.items():
+                setattr(resource, key, value)
 
-        attributes = self.deserialize(req.context['doc'])
-        for key, value in attributes.items():
-            setattr(resource, key, value)
-
-        self.db_session.add(resource)
-        try:
-            self.db_session.commit()
-        except sqlalchemy.exc.IntegrityError as err:
-            # Cases such as unallowed NULL value should have been checked
-            # before we got here (e.g. validate against schema
-            # using falconjsonio) - therefore assume this is a UNIQUE
-            # constraint violation
-            self.db_session.rollback()
-            raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
-        except sqlalchemy.exc.ProgrammingError as err:
-            self.db_session.rollback()
-            if err.orig.args[1] == '23505':
+            db_session.add(resource)
+            try:
+                db_session.commit()
+            except sqlalchemy.exc.IntegrityError as err:
+                # Cases such as unallowed NULL value should have been checked
+                # before we got here (e.g. validate against schema
+                # using falconjsonio) - therefore assume this is a UNIQUE
+                # constraint violation
+                db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
-            else:
+            except sqlalchemy.exc.ProgrammingError as err:
+                db_session.rollback()
+                if err.orig.args[1] == '23505':
+                    raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
+                else:
+                    raise
+            except:
+                db_session.rollback()
                 raise
-        except:
-            self.db_session.rollback()
-            raise
 
-        resp.status = falcon.HTTP_OK
-        req.context['result'] = {
-            'data': self.serialize(resource),
-        }
+            resp.status = falcon.HTTP_OK
+            req.context['result'] = {
+                'data': self.serialize(resource),
+            }

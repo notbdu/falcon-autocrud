@@ -10,6 +10,8 @@ from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, Numeric, String, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.event import listen
+from sqlalchemy.pool import Pool
 
 from .resource import CollectionResource, SingleResource
 
@@ -52,6 +54,15 @@ class OtherEmployeeResource(SingleResource):
     attr_map = {
         'employee_id': 'id'
     }
+
+def enable_foreign_keys(dbapi_connection, connection_record):
+    # Requires sqlite to be compiled with foreign keys support.  Perhaps we
+    # need to start using Postgres for testing?
+    enable_fk_sql = """
+        PRAGMA foreign_keys = ON;
+    """
+    result = dbapi_connection.execute(enable_fk_sql)
+    result.close()
 
 class AutoCRUDTest(unittest.TestCase):
     def tearDown(self):
@@ -98,27 +109,18 @@ class AutoCRUDTest(unittest.TestCase):
         self.db_session = Session(bind=self.db_engine)
 
 
-        self.app.add_route('/companies', CompanyCollectionResource(self.db_session))
-        self.app.add_route('/companies/{id}', CompanyResource(self.db_session))
-        self.app.add_route('/employees', EmployeeCollectionResource(self.db_session))
-        self.app.add_route('/employees/{id}', EmployeeResource(self.db_session))
+        self.app.add_route('/companies', CompanyCollectionResource(self.db_engine))
+        self.app.add_route('/companies/{id}', CompanyResource(self.db_engine))
+        self.app.add_route('/employees', EmployeeCollectionResource(self.db_engine))
+        self.app.add_route('/employees/{id}', EmployeeResource(self.db_engine))
 
 
         if self.using_sqlite:
-            self.enable_foreign_keys()
+            listen(Pool, 'connect', enable_foreign_keys)
 
         Base.metadata.create_all(self.db_engine)
 
         self.srmock = falcon.testing.StartResponseMock()
-
-    def enable_foreign_keys(self):
-        # Requires sqlite to be compiled with foreign keys support.  Perhaps we
-        # need to start using Postgres for testing?
-        enable_fk_sql = """
-            PRAGMA foreign_keys = ON;
-        """
-        result = self.db_session.execute(enable_fk_sql)
-        result.close()
 
     def simulate_request(self, path, *args, **kwargs):
         env = falcon.testing.create_environ(path=path, **kwargs)
@@ -669,9 +671,6 @@ class AutoCRUDTest(unittest.TestCase):
         self.db_session.add(Employee(name="Bob", joined=now))
         self.db_session.commit()
 
-        if self.using_sqlite:
-            self.enable_foreign_keys()
-
         response, = self.simulate_request('/companies/1', method='DELETE', headers={'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '409 Conflict')
         self.assertEqual(
@@ -1207,8 +1206,8 @@ class AutoCRUDTest(unittest.TestCase):
 
 
     def test_bad_route_filter(self):
-        self.app.add_route('/bad-employees/{foo}/stuff', EmployeeCollectionResource(self.db_session))
-        self.app.add_route('/bad-employees/{foo}', EmployeeResource(self.db_session))
+        self.app.add_route('/bad-employees/{foo}/stuff', EmployeeCollectionResource(self.db_engine))
+        self.app.add_route('/bad-employees/{foo}', EmployeeResource(self.db_engine))
 
         response, = self.simulate_request('/bad-employees/1/stuff', method='GET', headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
@@ -1228,8 +1227,8 @@ class AutoCRUDTest(unittest.TestCase):
         response, = self.simulate_request('/bad-employees/1', method='PATCH', headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
-        self.app.add_route('/more-bad-employees/{company}/stuff', EmployeeCollectionResource(self.db_session))
-        self.app.add_route('/more-bad-employees/{company}', EmployeeResource(self.db_session))
+        self.app.add_route('/more-bad-employees/{company}/stuff', EmployeeCollectionResource(self.db_engine))
+        self.app.add_route('/more-bad-employees/{company}', EmployeeResource(self.db_engine))
 
         response, = self.simulate_request('/more-bad-employees/1/stuff', method='GET', headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
@@ -1252,8 +1251,9 @@ class AutoCRUDTest(unittest.TestCase):
     def test_mapping(self):
         now = datetime.utcnow()
         self.db_session.add(Employee(name="Jim", joined=now))
+        self.db_session.commit()
 
-        self.app.add_route('/other-employees/{employee_id}', OtherEmployeeResource(self.db_session))
+        self.app.add_route('/other-employees/{employee_id}', OtherEmployeeResource(self.db_engine))
 
         response, = self.simulate_request('/other-employees/1', method='GET', headers={'Accept': 'application/json'})
         self.assertEqual(self.srmock.status, '200 OK')
