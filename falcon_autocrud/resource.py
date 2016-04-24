@@ -126,6 +126,10 @@ class CollectionResource(BaseResource):
                 point           = Point(value['x'], value['y'])
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
                 attributes[key] = WKBElement(point.wkb, srid=4326)
+            elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'LINESTRING':
+                line = LineString([point['x'], point['y']] for point in value)
+                # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
+                attributes[key] = WKBElement(line.wkb, srid=4326)
             else:
                 attributes[key] = value
         return attributes
@@ -274,6 +278,10 @@ class SingleResource(BaseResource):
                 point           = Point(value['x'], value['y'])
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
                 attributes[key] = WKBElement(point.wkb, srid=4326)
+            elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'LINESTRING':
+                line = LineString([point['x'], point['y']] for point in value)
+                # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
+                attributes[key] = WKBElement(line.wkb, srid=4326)
             else:
                 attributes[key] = value
 
