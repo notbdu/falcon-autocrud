@@ -13,11 +13,14 @@ import sys
 
 from .db_session import session_scope
 
+class UnsupportedGeometryType(Exception):
+    pass
+
 try:
     import geoalchemy2.shape
     from geoalchemy2.elements import WKBElement
     from geoalchemy2.types import Geometry
-    from shapely.geometry import Point
+    from shapely.geometry import Point, LineString
     support_geo = True
 except ImportError:
     support_geo = False
@@ -78,7 +81,15 @@ class BaseResource(object):
                 return float(value)
             elif support_geo and isinstance(value, WKBElement):
                 value = geoalchemy2.shape.to_shape(value)
-                return {'x': value.x, 'y': value.y}
+                if isinstance(value, Point):
+                    return {'x': value.x, 'y': value.y}
+                elif isinstance(value, LineString):
+                    return [
+                        {'x': point[0], 'y': point[1]}
+                        for point in list(value.coords)
+                    ]
+                else:
+                    raise UnsupportedGeometryType('Unsupported geometry type {0}'.format(value.geometryType()))
             else:
                 return value
         attrs = inspect(self.model).attrs
