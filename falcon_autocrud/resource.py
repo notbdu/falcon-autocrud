@@ -329,6 +329,16 @@ class SingleResource(BaseResource):
                 resources = resources.filter(attr == value)
 
             try:
+                resource = resources.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise falcon.errors.HTTPNotFound()
+            except sqlalchemy.orm.exc.MultipleResultsFound:
+                self.logger.error('Programming error: multiple results found for patch of model {0}'.format(self.model))
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+
+            resources = self.filter_by_params(resources, req.params)
+
+            try:
                 deleted = resources.delete()
                 db_session.commit()
             except sqlalchemy.exc.IntegrityError as err:
@@ -343,7 +353,7 @@ class SingleResource(BaseResource):
                     raise
 
             if deleted == 0:
-                raise falcon.errors.HTTPNotFound()
+                raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
             elif deleted > 1:
                 db_session.rollback()
                 self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))

@@ -653,6 +653,65 @@ class AutoCRUDTest(unittest.TestCase):
             }
         )
 
+    def test_single_delete_with_preconditions(self):
+        now = datetime.now()
+        self.db_session.add(Employee(name="Jim", joined=now))
+        self.db_session.add(Employee(name="Bob", joined=now))
+        self.db_session.commit()
+
+        response, = self.simulate_request('/employees/1', query_string='name=Bob', method='DELETE', headers={'Accept': 'application/json'})
+        self.assertConflict(response, 'Resource found but conditions violated')
+
+        response, = self.simulate_request('/employees/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': {
+                    'id':   1,
+                    'name': 'Jim',
+                    'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'left': None,
+                    'company_id': None,
+                    'pay_rate': None,
+                    'start_time': None,
+                    'lunch_start': None,
+                    'end_time': None,
+                },
+            }
+        )
+
+        response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertEqual(self.srmock.status, '200 OK')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'data': [
+                    {
+                        'id':   1,
+                        'name': 'Jim',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
+                        'company_id': None,
+                        'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
+                    },
+                    {
+                        'id':   2,
+                        'name': 'Bob',
+                        'joined': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'left': None,
+                        'company_id': None,
+                        'pay_rate': None,
+                        'start_time': None,
+                        'lunch_start': None,
+                        'end_time': None,
+                    },
+                ]
+            }
+        )
 
     def test_single_delete_not_found(self):
         now = datetime.now()
