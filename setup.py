@@ -31,7 +31,7 @@ setup(name='falcon-autocrud',
       packages=['falcon_autocrud'],
       install_requires=[
           'falcon',
-          'falconjsonio',
+          'falconjsonio >= 0.1.10',
           'sqlalchemy',
       ],
       zip_safe=False)

@@ -1271,7 +1271,7 @@ class AutoCRUDTest(unittest.TestCase):
         response, = self.simulate_request('/bad-employees/1/stuff', method='GET', headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
-        response, = self.simulate_request('/bad-employees/1/stuff', method='POST', headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        response, = self.simulate_request('/bad-employees/1/stuff', method='POST', body=json.dumps({}), headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
         response, = self.simulate_request('/bad-employees/1', method='GET', headers={'Accept': 'application/json'})
@@ -1280,10 +1280,10 @@ class AutoCRUDTest(unittest.TestCase):
         response, = self.simulate_request('/bad-employees/1', method='DELETE', headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
-        response, = self.simulate_request('/bad-employees/1', method='PUT', headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        response, = self.simulate_request('/bad-employees/1', method='PUT', body=json.dumps({}), headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
-        response, = self.simulate_request('/bad-employees/1', method='PATCH', headers={'Accept': 'application/json'})
+        response, = self.simulate_request('/bad-employees/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
         self.app.add_route('/more-bad-employees/{company}/stuff', EmployeeCollectionResource(self.db_engine))
@@ -1301,10 +1301,10 @@ class AutoCRUDTest(unittest.TestCase):
         response, = self.simulate_request('/more-bad-employees/1', method='DELETE', headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
-        response, = self.simulate_request('/more-bad-employees/1', method='PUT', headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+        response, = self.simulate_request('/more-bad-employees/1', method='PUT', body=json.dumps({}), headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
-        response, = self.simulate_request('/more-bad-employees/1', method='PATCH', headers={'Accept': 'application/json'})
+        response, = self.simulate_request('/more-bad-employees/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
     def test_mapping(self):
