@@ -162,6 +162,12 @@ class CollectionResource(BaseResource):
         Add an item to the collection.
         """
         attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
+
+        defaults = getattr(self, 'post_defaults', {})
+        for key, setter in defaults.items():
+            if key not in attributes:
+                attributes[key] = setter(req, resp, attributes)
+
         resource = self.model(**attributes)
 
         with session_scope(self.db_engine) as db_session:
@@ -385,6 +391,12 @@ class SingleResource(BaseResource):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
             attributes = self.deserialize(req.context['doc'])
+
+            defaults = getattr(self, 'put_defaults', {})
+            for key, setter in defaults.items():
+                if key not in attributes:
+                    attributes[key] = setter(req, resp, attributes)
+
             for key, value in attributes.items():
                 setattr(resource, key, value)
 
@@ -443,6 +455,12 @@ class SingleResource(BaseResource):
                 raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
 
             attributes = self.deserialize(req.context['doc'])
+
+            defaults = getattr(self, 'patch_defaults', {})
+            for key, setter in defaults.items():
+                if key not in attributes:
+                    attributes[key] = setter(req, resp, attributes)
+
             for key, value in attributes.items():
                 setattr(resource, key, value)
 

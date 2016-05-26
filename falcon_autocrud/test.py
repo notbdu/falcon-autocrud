@@ -36,6 +36,7 @@ class Employee(Base):
     start_time  = Column(Time, nullable=True)
     lunch_start = Column(Time, nullable=True)
     end_time    = Column(Time, nullable=True)
+    caps_name   = Column(String(50))
 
 class CompanyCollectionResource(CollectionResource):
     model = Company
@@ -46,8 +47,19 @@ class CompanyResource(SingleResource):
 class EmployeeCollectionResource(CollectionResource):
     model = Employee
 
+    post_defaults = {
+        'caps_name': (lambda req, res, attributes: attributes['name'].upper()),
+    }
+
 class EmployeeResource(SingleResource):
     model = Employee
+
+    put_defaults = {
+        'caps_name': (lambda req, res, attributes: 'PUT ' + attributes['name'].upper()),
+    }
+    patch_defaults = {
+        'caps_name': (lambda req, res, attributes: 'PATCH ' + attributes['name'].upper()),
+    }
 
 class OtherEmployeeResource(SingleResource):
     model = Employee
@@ -187,6 +199,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -210,6 +223,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -221,6 +235,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -252,6 +267,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': '09:00:00',
                     'lunch_start': None,
                     'end_time': '17:00:30',
+                    'caps_name': 'ALFRED',
                 },
             }
         )
@@ -272,6 +288,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': '09:00:00',
                         'lunch_start': None,
                         'end_time': '17:00:30',
+                        'caps_name': 'ALFRED',
                     },
                 ]
             }
@@ -305,6 +322,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -336,6 +354,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': 'PUT ALFRED',
                 },
             }
         )
@@ -355,6 +374,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': 'PUT ALFRED',
                 },
                 {
                     'id':   2,
@@ -366,6 +386,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': None,
                 },
             ]
         )
@@ -400,6 +421,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -411,6 +433,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -445,6 +468,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -476,6 +500,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': 'PATCH ALFRED',
                 },
             }
         )
@@ -495,6 +520,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': 'PATCH ALFRED',
                 },
                 {
                     'id':   2,
@@ -506,6 +532,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': None,
                 },
             ]
         )
@@ -532,6 +559,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': 'PATCH JACK',
                 },
             }
         )
@@ -566,6 +594,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -577,6 +606,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -611,6 +641,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -648,6 +679,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -677,6 +709,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': None,
                 },
             }
         )
@@ -697,6 +730,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -708,6 +742,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -768,6 +803,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -779,6 +815,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -816,6 +853,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -827,6 +865,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   3,
@@ -838,6 +877,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': 'ALFRED',
                     },
                 ]
             }
@@ -863,6 +903,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': None,
                 },
             }
         )
@@ -881,6 +922,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': None,
                 },
             }
         )
@@ -915,6 +957,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -935,6 +978,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -955,6 +999,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -975,6 +1020,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1001,6 +1047,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   5,
@@ -1012,6 +1059,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1032,6 +1080,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   5,
@@ -1043,6 +1092,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1063,6 +1113,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1083,6 +1134,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1103,6 +1155,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   3,
@@ -1114,6 +1167,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   4,
@@ -1125,6 +1179,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1145,6 +1200,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   3,
@@ -1156,6 +1212,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1185,6 +1242,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1205,6 +1263,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -1216,6 +1275,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   3,
@@ -1227,6 +1287,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   4,
@@ -1238,6 +1299,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1258,6 +1320,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     }
                 ]
             }
@@ -1329,6 +1392,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': None,
                 },
             }
         )
@@ -1352,6 +1416,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': None,
                 },
             }
         )
@@ -1375,6 +1440,7 @@ class AutoCRUDTest(unittest.TestCase):
                     'start_time': None,
                     'lunch_start': None,
                     'end_time': None,
+                    'caps_name': None,
                 },
             }
         )
@@ -1416,6 +1482,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -1427,6 +1494,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -1456,6 +1524,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -1467,6 +1536,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   3,
@@ -1478,6 +1548,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
@@ -1508,6 +1579,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   2,
@@ -1519,6 +1591,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                     {
                         'id':   3,
@@ -1530,6 +1603,7 @@ class AutoCRUDTest(unittest.TestCase):
                         'start_time': None,
                         'lunch_start': None,
                         'end_time': None,
+                        'caps_name': None,
                     },
                 ]
             }
