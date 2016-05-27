@@ -22,7 +22,7 @@ class TestIdentifier(object):
         found_user = req.get_header('Authorization')
         req.context['user'] = found_user
         if found_user is None:
-            raise HTTPUnauthorized('Authentication Required', 'No credentials supplied')
+            raise HTTPUnauthorized('Authentication Required', 'No credentials supplied', None)
 
 class JimAuthorizer(object):
     def authorize(self, req, resp, resource, params):
@@ -94,30 +94,30 @@ class AuthTest(BaseTestCase):
     def test_authorization_by_method(self):
         response, = self.simulate_request('/other-accounts', method='GET', headers={'Accept': 'application/json', 'Authorization': 'Jim'})
         self.assertOK(response)
-        response, = self.simulate_request('/other-accounts', method='POST', body=json.dumps({}), headers={'Accept': 'application/json', 'Authorization': 'Jim'})
+        response, = self.simulate_request('/other-accounts', method='POST', body=json.dumps({}), headers={'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Jim'})
         self.assertCreated(response)
-        response, = self.simulate_request('/other-accounts', method='PATCH', body=json.dumps({'patches': []}), headers={'Accept': 'application/json', 'Authorization': 'Jim'})
+        response, = self.simulate_request('/other-accounts', method='PATCH', body=json.dumps({'patches': []}), headers={'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Jim'})
         self.assertForbidden(response)
 
         response, = self.simulate_request('/other-accounts/1', method='GET', headers={'Accept': 'application/json', 'Authorization': 'Jim'})
         self.assertOK(response)
-        response, = self.simulate_request('/other-accounts/1', method='PUT', body=json.dumps({}), headers={'Accept': 'application/json', 'Authorization': 'Jim'})
+        response, = self.simulate_request('/other-accounts/1', method='PUT', body=json.dumps({}), headers={'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Jim'})
         self.assertForbidden(response)
-        response, = self.simulate_request('/other-accounts/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json', 'Authorization': 'Jim'})
+        response, = self.simulate_request('/other-accounts/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Jim'})
         self.assertForbidden(response)
 
         response, = self.simulate_request('/other-accounts', method='GET', headers={'Accept': 'application/json', 'Authorization': 'Bob'})
         self.assertForbidden(response)
-        response, = self.simulate_request('/other-accounts', method='POST', body=json.dumps({}), headers={'Accept': 'application/json', 'Authorization': 'Bob'})
+        response, = self.simulate_request('/other-accounts', method='POST', body=json.dumps({}), headers={'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bob'})
         self.assertForbidden(response)
-        response, = self.simulate_request('/other-accounts', method='PATCH', body=json.dumps({'patches': []}), headers={'Accept': 'application/json', 'Authorization': 'Bob'})
+        response, = self.simulate_request('/other-accounts', method='PATCH', body=json.dumps({'patches': []}), headers={'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bob'})
         self.assertOK(response)
 
         response, = self.simulate_request('/other-accounts/1', method='GET', headers={'Accept': 'application/json', 'Authorization': 'Bob'})
         self.assertForbidden(response)
-        response, = self.simulate_request('/other-accounts/1', method='PUT', body=json.dumps({}), headers={'Accept': 'application/json', 'Authorization': 'Bob'})
+        response, = self.simulate_request('/other-accounts/1', method='PUT', body=json.dumps({}), headers={'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bob'})
         self.assertOK(response)
-        response, = self.simulate_request('/other-accounts/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json', 'Authorization': 'Bob'})
+        response, = self.simulate_request('/other-accounts/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bob'})
         self.assertOK(response)
         response, = self.simulate_request('/other-accounts/1', method='DELETE', body=json.dumps({}), headers={'Accept': 'application/json', 'Authorization': 'Bob'})
         self.assertForbidden(response)

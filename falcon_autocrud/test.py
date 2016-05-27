@@ -1238,7 +1238,7 @@ class AutoCRUDTest(BaseTestCase):
         response, = self.simulate_request('/bad-employees/1', method='PUT', body=json.dumps({}), headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
-        response, = self.simulate_request('/bad-employees/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json'})
+        response, = self.simulate_request('/bad-employees/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
         self.assertInternalServerError(response)
 
         self.app.add_route('/more-bad-employees/{company}/stuff', EmployeeCollectionResource(self.db_engine))
@@ -1259,7 +1259,7 @@ class AutoCRUDTest(BaseTestCase):
         response, = self.simulate_request('/more-bad-employees/1', method='PUT', body=json.dumps({}), headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
         self.assertInternalServerError(response)
 
-        response, = self.simulate_request('/more-bad-employees/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json'})
+        response, = self.simulate_request('/more-bad-employees/1', method='PATCH', body=json.dumps({}), headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
         self.assertInternalServerError(response)
 
     def test_mapping(self):
