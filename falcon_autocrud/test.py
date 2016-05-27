@@ -1,22 +1,12 @@
 from datetime import datetime, timedelta
-import falconjsonio.middleware, falconjsonio.schema
-import falcon, falcon.testing
 import json
-import re
-import tempfile
-import unittest
-import os
-from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, Numeric, String, Time
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.event import listen
-from sqlalchemy.pool import Pool
 
 from .resource import CollectionResource, SingleResource
 
+from .test_base import Base, BaseTestCase
 
-Base = declarative_base()
 
 class Company(Base):
     __tablename__ = 'companies'
@@ -67,110 +57,12 @@ class OtherEmployeeResource(SingleResource):
         'employee_id': 'id'
     }
 
-def enable_foreign_keys(dbapi_connection, connection_record):
-    # Requires sqlite to be compiled with foreign keys support.  Perhaps we
-    # need to start using Postgres for testing?
-    enable_fk_sql = """
-        PRAGMA foreign_keys = ON;
-    """
-    result = dbapi_connection.execute(enable_fk_sql)
-    result.close()
-
-class AutoCRUDTest(unittest.TestCase):
-    def tearDown(self):
-        self.db_session.close()
-        self.db_engine.dispose()
-
-        if not self.using_sqlite:
-            Session = sessionmaker()
-            dsn = re.sub('/autocrudtest$', '', self.dsn)
-            tmp_db_engine = create_engine(dsn, isolation_level='AUTOCOMMIT')
-            tmp_db_session = Session(bind=tmp_db_engine)
-            tmp_db_session.execute('DROP DATABASE autocrudtest')
-
-    def setUp(self):
-        super(AutoCRUDTest, self).setUp()
-
-        self.app = falcon.API(
-            middleware=[
-                falconjsonio.middleware.RequireJSON(),
-                falconjsonio.middleware.JSONTranslator(),
-            ],
-        )
-
-        Session = sessionmaker()
-        if 'AUTOCRUD_DSN' in os.environ and os.environ['AUTOCRUD_DSN'] != '':
-            self.dsn = os.environ['AUTOCRUD_DSN']
-            self.using_sqlite = True if self.dsn.startswith('sqlite:') else False
-        else:
-            self.db_file = tempfile.NamedTemporaryFile()
-            self.dsn = 'sqlite:///{0}'.format(self.db_file.name)
-            self.using_sqlite = True
-        if self.dsn.startswith('postgresql+pg8000:'):
-            import pg8000
-
-        if not self.using_sqlite:
-            tmp_db_engine = create_engine(self.dsn, isolation_level='AUTOCOMMIT')
-            tmp_db_session = Session(bind=tmp_db_engine)
-            tmp_db_session.execute('CREATE DATABASE autocrudtest')
-
-        if self.dsn.startswith('postgresql+pg8000:'):
-            self.dsn += '/autocrudtest'
-
-        self.db_engine  = create_engine(self.dsn, echo=True)
-        self.db_session = Session(bind=self.db_engine)
-
-
+class AutoCRUDTest(BaseTestCase):
+    def create_test_resources(self):
         self.app.add_route('/companies', CompanyCollectionResource(self.db_engine))
         self.app.add_route('/companies/{id}', CompanyResource(self.db_engine))
         self.app.add_route('/employees', EmployeeCollectionResource(self.db_engine))
         self.app.add_route('/employees/{id}', EmployeeResource(self.db_engine))
-
-
-        if self.using_sqlite:
-            listen(Pool, 'connect', enable_foreign_keys)
-
-        Base.metadata.create_all(self.db_engine)
-
-        self.srmock = falcon.testing.StartResponseMock()
-
-    def simulate_request(self, path, *args, **kwargs):
-        env = falcon.testing.create_environ(path=path, **kwargs)
-        return self.app(env, self.srmock)
-
-    def assertBadRequest(self, response):
-        self.assertEqual(self.srmock.status, '400 Bad Request')
-        self.assertEqual(
-            json.loads(response.decode('utf-8')),
-            {
-                'title':        'Invalid attribute',
-                'description':  'An attribute provided for filtering is invalid',
-            }
-        )
-
-    def assertNotFound(self, response):
-        self.assertEqual(self.srmock.status, '404 Not Found')
-        self.assertEqual(response, [])
-
-    def assertConflict(self, response, description='Unique constraint violated'):
-        self.assertEqual(self.srmock.status, '409 Conflict')
-        self.assertEqual(
-            json.loads(response.decode('utf-8')),
-            {
-                'title':        'Conflict',
-                'description':  description,
-            }
-        )
-
-    def assertInternalServerError(self, response):
-        self.assertEqual(self.srmock.status, '500 Internal Server Error')
-        self.assertEqual(
-            json.loads(response.decode('utf-8')),
-            {
-                'title':        'Internal Server Error',
-                'description':  'An internal server error occurred',
-            }
-        )
 
     def test_empty_collection(self):
         response, = self.simulate_request('/employees', method='GET', headers={'Accept': 'application/json'})
