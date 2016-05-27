@@ -84,6 +84,12 @@ class BaseTestCase(unittest.TestCase):
         env = falcon.testing.create_environ(path=path, **kwargs)
         return self.app(env, self.srmock)
 
+    def assertOK(self, response):
+        self.assertEqual(self.srmock.status, '200 OK')
+
+    def assertCreated(self, response):
+        self.assertEqual(self.srmock.status, '201 Created')
+
     def assertBadRequest(self, response):
         self.assertEqual(self.srmock.status, '400 Bad Request')
         self.assertEqual(
@@ -91,6 +97,26 @@ class BaseTestCase(unittest.TestCase):
             {
                 'title':        'Invalid attribute',
                 'description':  'An attribute provided for filtering is invalid',
+            }
+        )
+
+    def assertUnauthorized(self, response, description='No credentials supplied'):
+        self.assertEqual(self.srmock.status, '401 Unauthorized')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'title':        'Authentication Required',
+                'description':  description,
+            }
+        )
+
+    def assertForbidden(self, response, description='User does not have access to this resource'):
+        self.assertEqual(self.srmock.status, '403 Forbidden')
+        self.assertEqual(
+            json.loads(response.decode('utf-8')),
+            {
+                'title':        'Permission Denied',
+                'description':  description,
             }
         )
 

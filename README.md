@@ -107,3 +107,37 @@ http DELETE http://localhost/employees/100
 # PATCHing a collection to add entities in bulk
 echo '{"patches": [{"op": "add", "path": "/", "value": {"name": "Jim"}}]}' | http PATCH http://localhost/employees
 ```
+
+### Identification and Authorization
+
+Define classes that know how to identify and authorize users:
+
+```
+class TestIdentifier(object):
+    def identify(self, req, resp, resource, params):
+        req.context['user'] = req.get_header('Authorization')
+        if req.context['user'] is None:
+            raise HTTPUnauthorized('Authentication Required', 'No credentials supplied')
+
+class TestAuthorizer(object):
+    def authorize(self, req, resp, resource, params):
+        if 'user' not in req.context or req.context['user'] != 'Jim':
+            raise HTTPForbidden('Permission Denied', 'User does not have access to this resource')
+```
+
+Then declare which class identifies/authorizes what resource or method:
+
+```
+# Authorizes for all methods
+@identify(TestIdentifier)
+@authorize(TestAuthorizer)
+class AccountCollectionResource(CollectionResource):
+    model = Account
+
+# Or only some methods
+@identify(TestIdentifier)
+@authorize(TestAuthorizer, methods=['GET', 'POST'])
+@authorize(OtherAuthorizer, methods=['PATCH'])
+class OtherAccountCollectionResource(CollectionResource):
+    model = Account
+```

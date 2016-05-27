@@ -13,6 +13,19 @@ import sys
 
 from .db_session import session_scope
 
+def identify(req, resp, resource, params):
+    identifiers = getattr(resource, '__identifiers__', {})
+    if req.method in identifiers:
+        Identifier = identifiers[req.method]
+        Identifier().identify(req, resp, resource, params)
+
+def authorize(req, resp, resource, params):
+    authorizers = getattr(resource, '__authorizers__', {})
+    if req.method in authorizers:
+        Authorizer = authorizers[req.method]
+        Authorizer().authorize(req, resp, resource, params)
+
+
 class UnsupportedGeometryType(Exception):
     pass
 
@@ -134,6 +147,8 @@ class CollectionResource(BaseResource):
                 attributes[key] = value
         return attributes
 
+    @falcon.before(identify)
+    @falcon.before(authorize)
     def on_get(self, req, resp, *args, **kwargs):
         """
         Return a collection of items.
@@ -157,6 +172,8 @@ class CollectionResource(BaseResource):
                 ],
             }
 
+    @falcon.before(identify)
+    @falcon.before(authorize)
     def on_post(self, req, resp, *args, **kwargs):
         """
         Add an item to the collection.
@@ -196,6 +213,8 @@ class CollectionResource(BaseResource):
                 'data': self.serialize(resource),
             }
 
+    @falcon.before(identify)
+    @falcon.before(authorize)
     def on_patch(self, req, resp, *args, **kwargs):
         """
         Update a collection.
@@ -293,6 +312,8 @@ class SingleResource(BaseResource):
 
         return attributes
 
+    @falcon.before(identify)
+    @falcon.before(authorize)
     def on_get(self, req, resp, *args, **kwargs):
         """
         Return a single item.
@@ -320,6 +341,8 @@ class SingleResource(BaseResource):
                 'data': self.serialize(resource),
             }
 
+    @falcon.before(identify)
+    @falcon.before(authorize)
     def on_delete(self, req, resp, *args, **kwargs):
         """
         Delete a single item.
@@ -368,6 +391,8 @@ class SingleResource(BaseResource):
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
 
+    @falcon.before(identify)
+    @falcon.before(authorize)
     def on_put(self, req, resp, *args, **kwargs):
         """
         Update an item in the collection.
@@ -425,6 +450,8 @@ class SingleResource(BaseResource):
                 'data': self.serialize(resource),
             }
 
+    @falcon.before(identify)
+    @falcon.before(authorize)
     def on_patch(self, req, resp, *args, **kwargs):
         """
         Update part of an item in the collection.
