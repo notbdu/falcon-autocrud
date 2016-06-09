@@ -341,6 +341,9 @@ class SingleResource(BaseResource):
                 'data': self.serialize(resource),
             }
 
+    def delete_precondition(self, req, resp, query, *args, **kwargs):
+        return query
+
     @falcon.before(identify)
     @falcon.before(authorize)
     def on_delete(self, req, resp, *args, **kwargs):
@@ -365,7 +368,11 @@ class SingleResource(BaseResource):
                 self.logger.error('Programming error: multiple results found for patch of model {0}'.format(self.model))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
-            resources = self.filter_by_params(resources, req.params)
+            resources = self.delete_precondition(
+                req, resp,
+                self.filter_by_params(resources, req.params),
+                *args, **kwargs
+            )
 
             try:
                 deleted = resources.delete()

@@ -1,4 +1,5 @@
 from .test_base import Base, BaseTestCase
+from .test_fixtures import Account
 
 from falcon.errors import HTTPUnauthorized, HTTPForbidden
 import json
@@ -8,11 +9,6 @@ from sqlalchemy import create_engine, Column, DateTime, ForeignKey, Integer, Num
 from .resource import CollectionResource, SingleResource
 from falcon_autocrud.auth import identify, authorize
 
-
-class Account(Base):
-    __tablename__ = 'accounts'
-    id          = Column(Integer, primary_key=True)
-    name        = Column(String(50), unique=True)
 
 found_user = None
 
