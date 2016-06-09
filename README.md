@@ -141,3 +141,34 @@ class AccountCollectionResource(CollectionResource):
 class OtherAccountCollectionResource(CollectionResource):
     model = Account
 ```
+
+### Filters/Preconditions
+
+You may filter on GET, and set preconditions on single resource PATCH or DELETE:
+
+```
+class AccountCollectionResource(CollectionResource):
+    model = Account
+
+    def get_filter(self, req, resp, query, *args, **kwargs):
+        # Only allow getting accounts below id 5
+        return query.filter(Account.id < 5)
+
+class AccountResource(SingleResource):
+    model = Account
+
+    def get_filter(self, req, resp, query, *args, **kwargs):
+        # Only allow getting accounts below id 5
+        return query.filter(Account.id < 5)
+
+    def patch_precondition(self, req, resp, query, *args, **kwargs):
+        # Only allow setting owner of non-owned account
+        if 'owner' in req.context['doc'] and req.context['doc']['owner'] is not None:
+            return query.filter(Account.owner == None)
+        else:
+            return query
+
+    def delete_precondition(self, req, resp, query, *args, **kwargs):
+        # Only allow deletes of non-owned accounts
+        return query.filter(Account.owner == None)
+```
