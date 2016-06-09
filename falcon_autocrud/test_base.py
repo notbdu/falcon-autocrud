@@ -84,8 +84,10 @@ class BaseTestCase(unittest.TestCase):
         env = falcon.testing.create_environ(path=path, **kwargs)
         return self.app(env, self.srmock)
 
-    def assertOK(self, response):
+    def assertOK(self, response, body=None):
         self.assertEqual(self.srmock.status, '200 OK')
+        if body is not None and isinstance(body, dict):
+            self.assertEqual(json.loads(response.decode('utf-8')), body)
 
     def assertCreated(self, response):
         self.assertEqual(self.srmock.status, '201 Created')
