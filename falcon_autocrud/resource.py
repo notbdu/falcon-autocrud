@@ -312,6 +312,9 @@ class SingleResource(BaseResource):
 
         return attributes
 
+    def get_filter(self, req, resp, query, *args, **kwargs):
+        return query
+
     @falcon.before(identify)
     @falcon.before(authorize)
     def on_get(self, req, resp, *args, **kwargs):
@@ -327,6 +330,8 @@ class SingleResource(BaseResource):
                     self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
                     raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
                 resources = resources.filter(attr == value)
+
+            resources = self.get_filter(req, resp, resources, *args, **kwargs)
 
             try:
                 resource = resources.one()

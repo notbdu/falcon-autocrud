@@ -13,6 +13,10 @@ class AccountCollectionResource(CollectionResource):
 class AccountResource(SingleResource):
     model = Account
 
+    def get_filter(self, req, resp, query, *args, **kwargs):
+        # Only allow getting accounts below id 5
+        return query.filter(Account.id < 5)
+
     def patch_precondition(self, req, resp, query, *args, **kwargs):
         # Only allow setting owner of non-owned account
         if 'owner' in req.context['doc'] and req.context['doc']['owner'] is not None:
@@ -29,6 +33,24 @@ class PreconditionTest(BaseTestCase):
     def create_test_resources(self):
         self.app.add_route('/accounts', AccountCollectionResource(self.db_engine))
         self.app.add_route('/accounts/{id}', AccountResource(self.db_engine))
+
+    def test_get_filter(self):
+        self.db_session.add(Account(id=1, name="Foo", owner=None))
+        self.db_session.add(Account(id=2, name="Bar", owner=None))
+        self.db_session.add(Account(id=5, name="Baz", owner=None))
+        self.db_session.commit()
+
+        response, = self.simulate_request('/accounts/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {'data': {'id': 1, 'name': 'Foo', 'owner': None}})
+
+        response, = self.simulate_request('/accounts/2', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {'data': {'id': 2, 'name': 'Bar', 'owner': None}})
+
+        response = self.simulate_request('/accounts/5', method='GET', headers={'Accept': 'application/json'})
+        self.assertNotFound(response)
+
+        response = self.simulate_request('/accounts/5', query_string='id=5', method='GET', headers={'Accept': 'application/json'})
+        self.assertNotFound(response)
 
     def test_patch_precondition(self):
         self.db_session.add(Account(id=1, name="Foo", owner=None))
