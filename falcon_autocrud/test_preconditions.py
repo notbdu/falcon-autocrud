@@ -10,6 +10,10 @@ from .resource import CollectionResource, SingleResource
 class AccountCollectionResource(CollectionResource):
     model = Account
 
+    def get_filter(self, req, resp, query, *args, **kwargs):
+        # Only allow getting accounts below id 5
+        return query.filter(Account.id < 5)
+
 class AccountResource(SingleResource):
     model = Account
 
@@ -33,6 +37,24 @@ class PreconditionTest(BaseTestCase):
     def create_test_resources(self):
         self.app.add_route('/accounts', AccountCollectionResource(self.db_engine))
         self.app.add_route('/accounts/{id}', AccountResource(self.db_engine))
+
+    def test_collection_get_filter(self):
+        self.db_session.add(Account(id=1, name="Foo", owner=None))
+        self.db_session.add(Account(id=2, name="Bar", owner=None))
+        self.db_session.add(Account(id=5, name="Baz", owner=None))
+        self.db_session.commit()
+
+        response, = self.simulate_request('/accounts', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {'data': [{'id': 1, 'name': 'Foo', 'owner': None}, {'id': 2, 'name': 'Bar', 'owner': None}]})
+
+        response, = self.simulate_request('/accounts', query_string='id=1', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {'data': [{'id': 1, 'name': 'Foo', 'owner': None}]})
+
+        response, = self.simulate_request('/accounts', query_string='id=5', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {'data': []})
+
+        response, = self.simulate_request('/accounts', query_string='id__lt=10', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {'data': [{'id': 1, 'name': 'Foo', 'owner': None}, {'id': 2, 'name': 'Bar', 'owner': None}]})
 
     def test_get_filter(self):
         self.db_session.add(Account(id=1, name="Foo", owner=None))
