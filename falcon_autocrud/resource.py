@@ -322,17 +322,17 @@ class SingleResource(BaseResource):
                 else:
                     attributes[key] = None
             elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POINT':
-                axes    = getattr(self, 'geometry_axes', {}).get(name, ['x', 'y'])
+                axes    = getattr(self, 'geometry_axes', {}).get(key, ['x', 'y'])
                 point   = Point(value[axes[0]], value[axes[1]])
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
                 attributes[key] = WKBElement(point.wkb, srid=4326)
             elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'LINESTRING':
-                axes    = getattr(self, 'geometry_axes', {}).get(name, ['x', 'y'])
+                axes    = getattr(self, 'geometry_axes', {}).get(key, ['x', 'y'])
                 line    = LineString([point[axes[0]], point[axes[1]]] for point in value)
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
                 attributes[key] = WKBElement(line.wkb, srid=4326)
             elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POLYGON':
-                axes    = getattr(self, 'geometry_axes', {}).get(name, ['x', 'y'])
+                axes    = getattr(self, 'geometry_axes', {}).get(key, ['x', 'y'])
                 polygon = Polygon([point[axes[0]], point[axes[1]]] for point in value)
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
                 attributes[key] = WKBElement(polygon.wkb, srid=4326)
