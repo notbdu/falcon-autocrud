@@ -104,7 +104,7 @@ class BaseResource(object):
                 elif isinstance(value, Polygon):
                     return [
                         {'x': point[0], 'y': point[1]}
-                        for point in list(value.coords)
+                        for point in list(value.boundary.coords)
                     ]
                 else:
                     raise UnsupportedGeometryType('Unsupported geometry type {0}'.format(value.geometryType()))
