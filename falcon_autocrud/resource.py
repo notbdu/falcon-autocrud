@@ -33,7 +33,7 @@ try:
     import geoalchemy2.shape
     from geoalchemy2.elements import WKBElement
     from geoalchemy2.types import Geometry
-    from shapely.geometry import Point, LineString
+    from shapely.geometry import Point, LineString, Polygon
     support_geo = True
 except ImportError:
     support_geo = False
@@ -101,6 +101,11 @@ class BaseResource(object):
                         {'x': point[0], 'y': point[1]}
                         for point in list(value.coords)
                     ]
+                elif isinstance(value, Polygon):
+                    return [
+                        {'x': point[0], 'y': point[1]}
+                        for point in list(value.coords)
+                    ]
                 else:
                     raise UnsupportedGeometryType('Unsupported geometry type {0}'.format(value.geometryType()))
             else:
@@ -143,6 +148,10 @@ class CollectionResource(BaseResource):
                 line = LineString([point['x'], point['y']] for point in value)
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
                 attributes[key] = WKBElement(line.wkb, srid=4326)
+            elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POLYGON':
+                polygon = Polygon([point['x'], point['y']] for point in value)
+                # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
+                attributes[key] = WKBElement(polygon.wkb, srid=4326)
             else:
                 attributes[key] = value
         return attributes
@@ -314,6 +323,10 @@ class SingleResource(BaseResource):
                 line = LineString([point['x'], point['y']] for point in value)
                 # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
                 attributes[key] = WKBElement(line.wkb, srid=4326)
+            elif support_geo and isinstance(column.type, Geometry) and column.type.geometry_type == 'POLYGON':
+                polygon = Polygon([point['x'], point['y']] for point in value)
+                # geoalchemy2.shape.from_shape uses buffer() which causes INSERT to fail
+                attributes[key] = WKBElement(polygon.wkb, srid=4326)
             else:
                 attributes[key] = value
 
