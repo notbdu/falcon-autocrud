@@ -171,6 +171,9 @@ class CollectionResource(BaseResource):
         """
         Return a collection of items.
         """
+        if 'GET' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -200,6 +203,9 @@ class CollectionResource(BaseResource):
         """
         Add an item to the collection.
         """
+        if 'POST' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
+
         attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
 
         defaults = getattr(self, 'post_defaults', {})
@@ -251,6 +257,9 @@ class CollectionResource(BaseResource):
         }
 
         """
+        if 'PATCH' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
+
         mapper  = inspect(self.model)
         patches = req.context['doc']['patches']
 
@@ -350,6 +359,9 @@ class SingleResource(BaseResource):
         """
         Return a single item.
         """
+        if 'GET' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -384,6 +396,9 @@ class SingleResource(BaseResource):
         """
         Delete a single item.
         """
+        if 'DELETE' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -438,6 +453,9 @@ class SingleResource(BaseResource):
         """
         Update an item in the collection.
         """
+        if 'PUT' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -500,6 +518,9 @@ class SingleResource(BaseResource):
         """
         Update part of an item in the collection.
         """
+        if 'PATCH' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
