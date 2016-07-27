@@ -197,6 +197,10 @@ class CollectionResource(BaseResource):
                 ],
             }
 
+            after_get = getattr(self, 'after_get', None)
+            if after_get is not None:
+                after_get(req, resp, resources, *args, **kwargs)
+
     @falcon.before(identify)
     @falcon.before(authorize)
     def on_post(self, req, resp, *args, **kwargs):
@@ -240,6 +244,10 @@ class CollectionResource(BaseResource):
             req.context['result'] = {
                 'data': self.serialize(resource),
             }
+
+            after_post = getattr(self, 'after_post', None)
+            if after_post is not None:
+                after_post(req, resp, resource)
 
     @falcon.before(identify)
     @falcon.before(authorize)
@@ -311,6 +319,10 @@ class CollectionResource(BaseResource):
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
+
+        after_patch = getattr(self, 'after_patch', None)
+        if after_patch is not None:
+            after_patch(req, resp, *args, **kwargs)
 
 class SingleResource(BaseResource):
     """
@@ -387,6 +399,10 @@ class SingleResource(BaseResource):
                 'data': self.serialize(resource),
             }
 
+            after_get = getattr(self, 'after_get', None)
+            if after_get is not None:
+                after_get(req, resp, resource, *args, **kwargs)
+
     def delete_precondition(self, req, resp, query, *args, **kwargs):
         return query
 
@@ -446,6 +462,11 @@ class SingleResource(BaseResource):
 
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
+
+        after_delete = getattr(self, 'after_delete', None)
+        if after_delete is not None:
+            after_delete(req, resp, *args, **kwargs)
+
 
     @falcon.before(identify)
     @falcon.before(authorize)
@@ -508,6 +529,10 @@ class SingleResource(BaseResource):
             req.context['result'] = {
                 'data': self.serialize(resource),
             }
+
+            after_put = getattr(self, 'after_put', None)
+            if after_put is not None:
+                after_put(req, resp, resource, *args, **kwargs)
 
     def patch_precondition(self, req, resp, query, *args, **kwargs):
         return query
@@ -584,3 +609,7 @@ class SingleResource(BaseResource):
             req.context['result'] = {
                 'data': self.serialize(resource),
             }
+
+            after_patch = getattr(self, 'after_patch', None)
+            if after_patch is not None:
+                after_patch(req, resp, resource, *args, **kwargs)

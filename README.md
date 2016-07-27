@@ -128,6 +128,48 @@ class AccountResource(CollectionResource):
     methods = ['GET']
 ```
 
+### Post-method functionality
+
+To do something after success of a method, after special methods as follows:
+
+```
+class AccountCollectionResource(CollectionResource):
+    model = Account
+
+    def after_get(self, req, resp, collection, *args, **kwargs):
+        # 'collection' is the SQLAlchemy collection resulting from the search
+        pass
+
+    def after_post(self, req, resp, new, *args, **kwargs):
+        # 'new' is the created SQLAlchemy instance
+        pass
+
+    def after_patch(self, req, resp, *args, **kwargs):
+        pass
+
+
+class AccountResource(CollectionResource):
+    model = Account
+
+    def after_get(self, req, resp, item, *args, **kwargs):
+        # 'item' is the retrieved SQLAlchemy instance
+        pass
+
+    def after_put(self, req, resp, item, *args, **kwargs):
+        # 'item' is the changed SQLAlchemy instance
+        pass
+
+    def after_patch(self, req, resp, item, *args, **kwargs):
+        # 'item' is the patched SQLAlchemy instance
+        pass
+
+    def after_delete(self, req, resp, *args, **kwargs):
+        pass
+```
+
+Be careful not to throw an exception in the above methods, as this will end up
+propagating a 500 Internal Server Error.
+
 ### Identification and Authorization
 
 Define classes that know how to identify and authorize users:
