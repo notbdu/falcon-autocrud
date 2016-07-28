@@ -163,7 +163,7 @@ class AccountResource(CollectionResource):
         # 'item' is the patched SQLAlchemy instance
         pass
 
-    def after_delete(self, req, resp, *args, **kwargs):
+    def after_delete(self, req, resp, item, *args, **kwargs):
         pass
 ```
 

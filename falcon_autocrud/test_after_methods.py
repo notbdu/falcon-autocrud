@@ -59,11 +59,11 @@ class AfterAccountResource(SingleResource):
         count += 1
         proof = {'count': count, 'name': item.name, 'id': req.context['result']['data']['id'], 'status': resp.status}
 
-    def after_delete(self, req, resp, *args, **kwargs):
+    def after_delete(self, req, resp, item, *args, **kwargs):
         global proof
         global count
         count += 1
-        proof = {'count': count, 'status': resp.status}
+        proof = {'count': count, 'name': item.name, 'status': resp.status}
 
 
 
@@ -128,4 +128,4 @@ class MethodTest(BaseTestCase):
 
         proof = {}
         response, = self.simulate_request('/after-accounts/1', method='DELETE', headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
-        self.assertEqual(proof, {'count': 7, 'status': falcon.HTTP_OK})
+        self.assertEqual(proof, {'count': 7, 'name': 'Sam', 'status': falcon.HTTP_OK})

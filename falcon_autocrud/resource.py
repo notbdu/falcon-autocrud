@@ -7,6 +7,7 @@ import sqlalchemy.exc
 import sqlalchemy.orm.exc
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.inspection import inspect
+from sqlalchemy.orm.session import make_transient
 import sqlalchemy.sql.sqltypes
 import logging
 import sys
@@ -440,7 +441,17 @@ class SingleResource(BaseResource):
             )
 
             try:
-                deleted = resources.delete()
+                resource = resources.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
+            except sqlalchemy.orm.exc.MultipleResultsFound:
+                self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+
+            make_transient(resource)
+
+            try:
+                resources.delete()
                 db_session.commit()
             except sqlalchemy.exc.IntegrityError as err:
                 # As far we I know, this should only be caused by foreign key constraint being violated
@@ -453,19 +464,12 @@ class SingleResource(BaseResource):
                 else:
                     raise
 
-            if deleted == 0:
-                raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
-            elif deleted > 1:
-                db_session.rollback()
-                self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))
-                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            resp.status = falcon.HTTP_OK
+            req.context['result'] = {}
 
-        resp.status = falcon.HTTP_OK
-        req.context['result'] = {}
-
-        after_delete = getattr(self, 'after_delete', None)
-        if after_delete is not None:
-            after_delete(req, resp, *args, **kwargs)
+            after_delete = getattr(self, 'after_delete', None)
+            if after_delete is not None:
+                after_delete(req, resp, resource, *args, **kwargs)
 
 
     @falcon.before(identify)
