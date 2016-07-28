@@ -119,7 +119,6 @@ class MethodTest(BaseTestCase):
 
         proof = {}
         response, = self.simulate_request('/after-accounts/1', method='PUT', body=json.dumps({'id': 1, 'name': 'Jack'}), headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
-        print(response)
         self.assertEqual(proof, {'count': 5, 'name': 'Jack', 'id': 1, 'status': falcon.HTTP_OK})
 
         proof = {}
