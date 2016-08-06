@@ -234,3 +234,42 @@ class AccountResource(SingleResource):
         # Only allow deletes of non-owned accounts
         return query.filter(Account.owner == None)
 ```
+
+## Not really deleting
+
+If you want to just mark a resource as deleted in the database, but not really
+delete the row, define a 'mark_deleted' in your SingleResource subclass:
+
+```
+class AccountResource(SingleResource):
+    model = Account
+
+    def mark_deleted(self, req, resp, instance, *args, **kwargs):
+        instance.deleted = datetime.utcnow()
+```
+
+This will cause the changed instance to be updated in the database instead of
+doing a DELETE.
+
+Of course, the database row will still be accessible via GET, but you can
+automatically filter out "deleted" rows like this:
+
+```
+class AccountCollectionResource(CollectionResource):
+    model = Account
+
+    def get_filter(self, req, resp, resources, *args, **kwargs):
+        return resources.filter(Account.deleted == None)
+
+class AccountResource(SingleResource):
+    model = Account
+
+    def get_filter(self, req, resp, resources, *args, **kwargs):
+        return resources.filter(Account.deleted == None)
+
+    def mark_deleted(self, req, resp, instance, *args, **kwargs):
+        instance.deleted = datetime.utcnow()
+```
+
+You could also look at the request to only filter out "deleted" rows for some
+users.

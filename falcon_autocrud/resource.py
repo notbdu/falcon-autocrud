@@ -448,10 +448,14 @@ class SingleResource(BaseResource):
                 self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
-            make_transient(resource)
-
             try:
-                resources.delete()
+                mark_deleted = getattr(self, 'mark_deleted', None)
+                if mark_deleted is not None:
+                    mark_deleted(req, resp, resource, *args, **kwargs)
+                    db_session.add(resource)
+                else:
+                    make_transient(resource)
+                    resources.delete()
                 db_session.commit()
             except sqlalchemy.exc.IntegrityError as err:
                 # As far we I know, this should only be caused by foreign key constraint being violated
