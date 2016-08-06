@@ -235,7 +235,7 @@ class AccountResource(SingleResource):
         return query.filter(Account.owner == None)
 ```
 
-## Not really deleting
+### Not really deleting
 
 If you want to just mark a resource as deleted in the database, but not really
 delete the row, define a 'mark_deleted' in your SingleResource subclass:
