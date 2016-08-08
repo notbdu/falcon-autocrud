@@ -126,6 +126,10 @@ class BaseTestCase(unittest.TestCase):
         self.assertEqual(self.srmock.status, '404 Not Found')
         self.assertEqual(response, [])
 
+    def assertMethodNotAllowed(self, response):
+        self.assertEqual(self.srmock.status, '405 Method Not Allowed')
+        self.assertEqual(response, [])
+
     def assertConflict(self, response, description='Unique constraint violated'):
         self.assertEqual(self.srmock.status, '409 Conflict')
         self.assertEqual(

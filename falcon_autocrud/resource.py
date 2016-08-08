@@ -7,6 +7,7 @@ import sqlalchemy.exc
 import sqlalchemy.orm.exc
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.inspection import inspect
+from sqlalchemy.orm.session import make_transient
 import sqlalchemy.sql.sqltypes
 import logging
 import sys
@@ -171,6 +172,9 @@ class CollectionResource(BaseResource):
         """
         Return a collection of items.
         """
+        if 'GET' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -194,12 +198,19 @@ class CollectionResource(BaseResource):
                 ],
             }
 
+            after_get = getattr(self, 'after_get', None)
+            if after_get is not None:
+                after_get(req, resp, resources, *args, **kwargs)
+
     @falcon.before(identify)
     @falcon.before(authorize)
     def on_post(self, req, resp, *args, **kwargs):
         """
         Add an item to the collection.
         """
+        if 'POST' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
+
         attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
 
         defaults = getattr(self, 'post_defaults', {})
@@ -235,6 +246,10 @@ class CollectionResource(BaseResource):
                 'data': self.serialize(resource),
             }
 
+            after_post = getattr(self, 'after_post', None)
+            if after_post is not None:
+                after_post(req, resp, resource)
+
     @falcon.before(identify)
     @falcon.before(authorize)
     def on_patch(self, req, resp, *args, **kwargs):
@@ -251,6 +266,9 @@ class CollectionResource(BaseResource):
         }
 
         """
+        if 'PATCH' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
+
         mapper  = inspect(self.model)
         patches = req.context['doc']['patches']
 
@@ -303,6 +321,10 @@ class CollectionResource(BaseResource):
         resp.status = falcon.HTTP_OK
         req.context['result'] = {}
 
+        after_patch = getattr(self, 'after_patch', None)
+        if after_patch is not None:
+            after_patch(req, resp, *args, **kwargs)
+
 class SingleResource(BaseResource):
     """
     Provides CRUD facilities for a single resource.
@@ -350,6 +372,9 @@ class SingleResource(BaseResource):
         """
         Return a single item.
         """
+        if 'GET' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -375,6 +400,10 @@ class SingleResource(BaseResource):
                 'data': self.serialize(resource),
             }
 
+            after_get = getattr(self, 'after_get', None)
+            if after_get is not None:
+                after_get(req, resp, resource, *args, **kwargs)
+
     def delete_precondition(self, req, resp, query, *args, **kwargs):
         return query
 
@@ -384,6 +413,9 @@ class SingleResource(BaseResource):
         """
         Delete a single item.
         """
+        if 'DELETE' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -409,7 +441,21 @@ class SingleResource(BaseResource):
             )
 
             try:
-                deleted = resources.delete()
+                resource = resources.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
+            except sqlalchemy.orm.exc.MultipleResultsFound:
+                self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))
+                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+
+            try:
+                mark_deleted = getattr(self, 'mark_deleted', None)
+                if mark_deleted is not None:
+                    mark_deleted(req, resp, resource, *args, **kwargs)
+                    db_session.add(resource)
+                else:
+                    make_transient(resource)
+                    resources.delete()
                 db_session.commit()
             except sqlalchemy.exc.IntegrityError as err:
                 # As far we I know, this should only be caused by foreign key constraint being violated
@@ -422,15 +468,13 @@ class SingleResource(BaseResource):
                 else:
                     raise
 
-            if deleted == 0:
-                raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
-            elif deleted > 1:
-                db_session.rollback()
-                self.logger.error('Programming error: multiple results found for delete of model {0}'.format(self.model))
-                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+            resp.status = falcon.HTTP_OK
+            req.context['result'] = {}
 
-        resp.status = falcon.HTTP_OK
-        req.context['result'] = {}
+            after_delete = getattr(self, 'after_delete', None)
+            if after_delete is not None:
+                after_delete(req, resp, resource, *args, **kwargs)
+
 
     @falcon.before(identify)
     @falcon.before(authorize)
@@ -438,6 +482,9 @@ class SingleResource(BaseResource):
         """
         Update an item in the collection.
         """
+        if 'PUT' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -491,6 +538,10 @@ class SingleResource(BaseResource):
                 'data': self.serialize(resource),
             }
 
+            after_put = getattr(self, 'after_put', None)
+            if after_put is not None:
+                after_put(req, resp, resource, *args, **kwargs)
+
     def patch_precondition(self, req, resp, query, *args, **kwargs):
         return query
 
@@ -500,6 +551,9 @@ class SingleResource(BaseResource):
         """
         Update part of an item in the collection.
         """
+        if 'PATCH' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
+            raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
+
         with session_scope(self.db_engine) as db_session:
             resources = db_session.query(self.model)
             for key, value in kwargs.items():
@@ -563,3 +617,7 @@ class SingleResource(BaseResource):
             req.context['result'] = {
                 'data': self.serialize(resource),
             }
+
+            after_patch = getattr(self, 'after_patch', None)
+            if after_patch is not None:
+                after_patch(req, resp, resource, *args, **kwargs)
