@@ -273,3 +273,37 @@ class AccountResource(SingleResource):
 
 You could also look at the request to only filter out "deleted" rows for some
 users.
+
+### Joins
+
+If you want to add query parameters to your collection queries, that do not
+refer to a resource attribute, but which refer to an attribute in a linked
+table, you can do this in get_filter, as with the below example.  Ensure that
+you remove the extra parameter value from req.params before returning from
+get_filter, as falcon-autocrud will try (and fail) to look up the parameter in
+the main resource class.
+
+```
+class Company(Base):
+    __tablename__ = 'companies'
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(50), unique=True)
+    employees   = relationship('Employee')
+
+class Employee(Base):
+    __tablename__ = 'employees'
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(50), unique=True)
+    company_id  = Column(Integer, ForeignKey('companies.id'), nullable=True)
+    company     = relationship('Company', back_populates='employees')
+
+class EmployeeCollectionResource(CollectionResource):
+    model = Employee
+
+    def get_filter(self, req, resp, query, *args, **kwargs):
+        if 'company_name' in req.params:
+            company_name = req.params['company_name']
+            del req.params['company_name']
+            query = query.join(Employee.company).filter(Company.name == company_name)
+        return query
+```
