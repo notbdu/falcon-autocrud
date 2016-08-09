@@ -185,10 +185,13 @@ class CollectionResource(BaseResource):
                     raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
                 resources = resources.filter(attr == value)
 
-            resources = self.get_filter(
-                req, resp,
-                self.filter_by_params(resources, req.params),
-                *args, **kwargs
+            resources = self.filter_by_params(
+                self.get_filter(
+                    req, resp,
+                    resources,
+                    *args, **kwargs
+                ),
+                req.params
             )
 
             resp.status = falcon.HTTP_OK
