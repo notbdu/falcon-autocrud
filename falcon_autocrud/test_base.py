@@ -77,7 +77,12 @@ class BaseTestCase(unittest.TestCase):
 
         self.srmock = falcon.testing.StartResponseMock()
 
+        self.create_common_fixtures()
+
     def create_test_resources(self):
+        pass
+
+    def create_common_fixtures(self):
         pass
 
     def simulate_request(self, path, *args, **kwargs):

@@ -307,3 +307,14 @@ class EmployeeCollectionResource(CollectionResource):
             query = query.join(Employee.company).filter(Company.name == company_name)
         return query
 ```
+
+### Sorting
+
+You can specify a default sorting of results from the collection search.  The
+below example sorts firstly by name, then by salary descending:
+
+```
+class EmployeeCollectionResource(CollectionResource):
+    model = Employee
+    default_sort = ['name', '-salary']
+```

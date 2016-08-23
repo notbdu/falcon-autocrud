@@ -194,6 +194,24 @@ class CollectionResource(BaseResource):
                 req.params
             )
 
+            sort = getattr(self, 'default_sort', None)
+            if sort is not None:
+                order_fields = []
+                for field_name in sort:
+                    reverse = False
+                    if field_name[0] == '-':
+                        field_name = field_name[1:]
+                        reverse = True
+                    attr = getattr(self.model, field_name, None)
+                    if attr is None or not isinstance(inspect(self.model).attrs[field_name], ColumnProperty):
+                        self.logger.error("Programming error: Sort field {0}.{1} does not exist or is not a column".format(self.model, field_name))
+                        raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                    if reverse:
+                        order_fields.append(attr.desc())
+                    else:
+                        order_fields.append(attr)
+                resources = resources.order_by(*order_fields)
+
             resp.status = falcon.HTTP_OK
             req.context['result'] = {
                 'data': [
