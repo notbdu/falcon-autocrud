@@ -85,3 +85,45 @@ class SortTest(BaseTestCase):
     def test_invalid_default_sort(self):
         response, = self.simulate_request('/invalid-default-sort-characters', method='GET', headers={'Accept': 'application/json'})
         self.assertInternalServerError(response)
+
+    def test_user_defined_sort(self):
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 3, 'name': 'Thea'},
+                {'id': 7, 'name': 'Roy'},
+                {'id': 6, 'name': 'Oliver'},
+                {'id': 4, 'name': 'Laurel'},
+                {'id': 1, 'name': 'John'},
+                {'id': 8, 'name': 'Iris'},
+                {'id': 5, 'name': 'Felicity'},
+                {'id': 10, 'name': 'Cisco'},
+                {'id': 11, 'name': 'Cisco'},
+                {'id': 12, 'name': 'Cisco'},
+                {'id': 9, 'name': 'Caitlin'},
+                {'id': 2, 'name': 'Barry'},
+            ]
+        })
+
+    def test_user_defined_sort_overrides_default(self):
+        response, = self.simulate_request('/default-sort-characters', query_string='__sort=-name,id', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 3, 'name': 'Thea'},
+                {'id': 7, 'name': 'Roy'},
+                {'id': 6, 'name': 'Oliver'},
+                {'id': 4, 'name': 'Laurel'},
+                {'id': 1, 'name': 'John'},
+                {'id': 8, 'name': 'Iris'},
+                {'id': 5, 'name': 'Felicity'},
+                {'id': 10, 'name': 'Cisco'},
+                {'id': 11, 'name': 'Cisco'},
+                {'id': 12, 'name': 'Cisco'},
+                {'id': 9, 'name': 'Caitlin'},
+                {'id': 2, 'name': 'Barry'},
+            ]
+        })
+
+    def test_invalid_sort(self):
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id,foo', method='GET', headers={'Accept': 'application/json'})
+        self.assertBadRequest(response, description='An attribute provided for sorting is invalid')

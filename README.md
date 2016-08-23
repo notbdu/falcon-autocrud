@@ -318,3 +318,9 @@ class EmployeeCollectionResource(CollectionResource):
     model = Employee
     default_sort = ['name', '-salary']
 ```
+
+The caller can specify a sort (which overrides the default if defined):
+
+```
+GET /path/to/collection?__sort=name,-salary
+```

@@ -49,6 +49,9 @@ class BaseResource(object):
 
     def filter_by_params(self, resources, params):
         for filter_key, value in params.items():
+            if filter_key.startswith('__'):
+                # Not a filtering parameter
+                continue
             filter_parts = filter_key.split('__')
             key = filter_parts[0]
             if len(filter_parts) == 1:
@@ -194,7 +197,11 @@ class CollectionResource(BaseResource):
                 req.params
             )
 
-            sort = getattr(self, 'default_sort', None)
+            sort                = getattr(self, 'default_sort', None)
+            using_default_sort  = True
+            if '__sort' in req.params:
+                using_default_sort = False
+                sort = req.params['__sort']
             if sort is not None:
                 order_fields = []
                 for field_name in sort:
@@ -204,8 +211,11 @@ class CollectionResource(BaseResource):
                         reverse = True
                     attr = getattr(self.model, field_name, None)
                     if attr is None or not isinstance(inspect(self.model).attrs[field_name], ColumnProperty):
-                        self.logger.error("Programming error: Sort field {0}.{1} does not exist or is not a column".format(self.model, field_name))
-                        raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                        if using_default_sort:
+                            self.logger.error("Programming error: Sort field {0}.{1} does not exist or is not a column".format(self.model, field_name))
+                            raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                        else:
+                            raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for sorting is invalid')
                     if reverse:
                         order_fields.append(attr.desc())
                     else:

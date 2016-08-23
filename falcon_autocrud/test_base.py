@@ -97,13 +97,13 @@ class BaseTestCase(unittest.TestCase):
     def assertCreated(self, response):
         self.assertEqual(self.srmock.status, '201 Created')
 
-    def assertBadRequest(self, response):
+    def assertBadRequest(self, response, description='An attribute provided for filtering is invalid'):
         self.assertEqual(self.srmock.status, '400 Bad Request')
         self.assertEqual(
             json.loads(response.decode('utf-8')),
             {
                 'title':        'Invalid attribute',
-                'description':  'An attribute provided for filtering is invalid',
+                'description':  description,
             }
         )
 
