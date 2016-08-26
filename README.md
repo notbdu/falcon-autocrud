@@ -170,6 +170,22 @@ class AccountResource(CollectionResource):
 Be careful not to throw an exception in the above methods, as this will end up
 propagating a 500 Internal Server Error.
 
+### Modifying a patch
+
+If you want to modify the patched resource before it is saved (e.g. to set
+default values), you can override the default empty method in SingleResource:
+
+```
+class AccountResource(SingleResource):
+    model = Account
+
+    def modify_patch(self, req, resp, resource, *args, **kwargs):
+        """
+        Add 'arino' to people's names
+        """
+        resource.name = resource.name + 'arino'
+```
+
 ### Identification and Authorization
 
 Define classes that know how to identify and authorize users:

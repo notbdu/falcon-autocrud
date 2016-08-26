@@ -576,6 +576,9 @@ class SingleResource(BaseResource):
     def patch_precondition(self, req, resp, query, *args, **kwargs):
         return query
 
+    def modify_patch(self, req, resp, resource, *args, **kwargs):
+        pass
+
     @falcon.before(identify)
     @falcon.before(authorize)
     def on_patch(self, req, resp, *args, **kwargs):
@@ -623,6 +626,8 @@ class SingleResource(BaseResource):
 
             for key, value in attributes.items():
                 setattr(resource, key, value)
+
+            self.modify_patch(req, resp, resource, *args, **kwargs)
 
             db_session.add(resource)
             try:
