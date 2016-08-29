@@ -94,8 +94,10 @@ class BaseTestCase(unittest.TestCase):
         if body is not None and isinstance(body, dict):
             self.assertEqual(json.loads(response.decode('utf-8')), body)
 
-    def assertCreated(self, response):
+    def assertCreated(self, response, body=None):
         self.assertEqual(self.srmock.status, '201 Created')
+        if body is not None and isinstance(body, dict):
+            self.assertEqual(json.loads(response.decode('utf-8')), body)
 
     def assertBadRequest(self, response, description='An attribute provided for filtering is invalid'):
         self.assertEqual(self.srmock.status, '400 Bad Request')

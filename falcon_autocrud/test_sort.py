@@ -2,13 +2,9 @@ import json
 from sqlalchemy import Column, Integer, String
 
 from .test_base import Base, BaseTestCase
+from .test_fixtures import Character
 
 from .resource import CollectionResource, SingleResource
-
-class Character(Base):
-    __tablename__ = 'characters'
-    id          = Column(Integer, primary_key=True)
-    name        = Column(String(50))
 
 
 class CharacterCollectionResource(CollectionResource):

@@ -28,3 +28,12 @@ class Employee(Base):
     lunch_start = Column(Time, nullable=True)
     end_time    = Column(Time, nullable=True)
     caps_name   = Column(String(50))
+
+class Character(Base):
+    __tablename__ = 'characters'
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(50))
+
+    def _indirect_name(self, value):
+        self.name = value
+    indirect_name = property(None, _indirect_name)

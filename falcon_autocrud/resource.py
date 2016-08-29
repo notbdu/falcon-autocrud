@@ -138,6 +138,10 @@ class CollectionResource(BaseResource):
             attributes[key] = value
 
         for key, value in body_data.items():
+            if isinstance(getattr(self.model, key, None), property):
+                # Value is set using a function, so we cannot tell what type it will be
+                attributes[key] = value
+                continue
             column = mapper.columns[key]
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
@@ -365,6 +369,10 @@ class SingleResource(BaseResource):
         attributes  = {}
 
         for key, value in data.items():
+            if isinstance(getattr(self.model, key, None), property):
+                # Value is set using a function, so we cannot tell what type it will be
+                attributes[key] = value
+                continue
             column = mapper.columns[key]
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
