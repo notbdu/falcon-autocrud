@@ -392,7 +392,13 @@ class SingleResource(BaseResource):
                 # Value is set using a function, so we cannot tell what type it will be
                 attributes[key] = value
                 continue
-            column = mapper.columns[key]
+            try:
+                column = mapper.columns[key]
+            except KeyError:
+                # Assume programmer has done their job of filtering out invalid
+                # columns, and that they are going to use this field for some
+                # custom purpose
+                continue
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):
@@ -621,6 +627,10 @@ class SingleResource(BaseResource):
                 setattr(resource, key, value)
 
             self.modify_patch(req, resp, resource, *args, **kwargs)
+
+            before_patch = getattr(self, 'before_patch', None)
+            if before_patch is not None:
+                self.before_patch(req, resp, db_session, resource, *args, **kwargs)
 
             db_session.add(resource)
             try:

@@ -37,6 +37,15 @@ class OwnerCollectionResource(CollectionResource):
         company = Company(id=req.context['doc']['company_id'], name=req.context['doc']['company_name'])
         db_session.add(company)
 
+class OwnerResource(SingleResource):
+    model = Owner
+
+    def before_patch(self, req, resp, db_session, resource, *args, **kwargs):
+        # Rename company
+        company = resource.company
+        company.name = req.context['doc']['company_name']
+        db_session.add(company)
+
 class CompanyResource(SingleResource):
     model = Company
 
@@ -45,6 +54,7 @@ class MethodTest(BaseTestCase):
         self.app.add_route('/accounts', AccountCollectionResource(self.db_engine))
         self.app.add_route('/before-accounts', BeforeAccountCollectionResource(self.db_engine))
         self.app.add_route('/owners', OwnerCollectionResource(self.db_engine))
+        self.app.add_route('/owners/{id}', OwnerResource(self.db_engine))
         self.app.add_route('/companies/{id}', CompanyResource(self.db_engine))
 
     def test_no_before(self):
@@ -89,7 +99,7 @@ class MethodTest(BaseTestCase):
             ]
         })
 
-    def test_add_related_data(self):
+    def test_add_or_update_related_data(self):
         response, = self.simulate_request('/owners', method='POST', body=json.dumps({'id': 1, 'name': 'Bob', 'company_id': 5, 'company_name': 'Initech'}), headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
         self.assertCreated(response, {
             'data': {
@@ -103,5 +113,21 @@ class MethodTest(BaseTestCase):
             'data': {
                 'id':           5,
                 'name':         'Initech',
+            }
+        })
+
+        response, = self.simulate_request('/owners/1', method='PATCH', body=json.dumps({'name': 'Jack', 'company_name': 'Vandelay'}), headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
+        self.assertOK(response, {
+            'data': {
+                'id':           1,
+                'name':         'Jack',
+                'company_id':   5,
+            }
+        })
+        response, = self.simulate_request('/companies/5', method='GET', headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
+        self.assertOK(response, {
+            'data': {
+                'id':           5,
+                'name':         'Vandelay',
             }
         })

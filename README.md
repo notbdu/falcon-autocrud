@@ -130,17 +130,26 @@ class AccountResource(CollectionResource):
 
 ### Pre-method functionality.
 
-To do something before a method is called (currently only POST), add special
-methods as follows:
+To do something before a POST or PATCH method is called, add special methods as
+follows:
 
 ```
 class AccountCollectionResource(CollectionResource):
     model = Account
 
     def before_post(self, req, resp, db_session, resource, *args, **kwargs):
-      # Anything you do with db_session is in the same transaction as the #
-      # resource creation.  Resource is the new resource not yet added to the #
+      # Anything you do with db_session is in the same transaction as the
+      # resource creation.  Resource is the new resource not yet added to the
       # database.
+      pass
+
+class AccountResource(SingleResource):
+    model = Account
+
+    def before_patch(self, req, resp, db_session, resource, *args, **kwargs):
+      # Anything you do with db_session is in the same transaction as the
+      # resource update.  Resource is the modified resource not yet saved to
+      # the database.
       pass
 ```
 
