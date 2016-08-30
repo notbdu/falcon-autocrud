@@ -260,11 +260,15 @@ class CollectionResource(BaseResource):
 
         attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
 
-        self.apply_default_attributes('post_defaults', req, resp, attributes)
-
-        resource = self.model(**attributes)
-
         with session_scope(self.db_engine) as db_session:
+            self.apply_default_attributes('post_defaults', req, resp, attributes)
+
+            resource = self.model(**attributes)
+
+            before_post = getattr(self, 'before_post', None)
+            if before_post is not None:
+                self.before_post(req, resp, db_session, resource, *args, **kwargs)
+
             db_session.add(resource)
             try:
                 db_session.commit()

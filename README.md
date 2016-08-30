@@ -128,9 +128,25 @@ class AccountResource(CollectionResource):
     methods = ['GET']
 ```
 
+### Pre-method functionality.
+
+To do something before a method is called (currently only POST), add special
+methods as follows:
+
+```
+class AccountCollectionResource(CollectionResource):
+    model = Account
+
+    def before_post(self, req, resp, db_session, resource, *args, **kwargs):
+      # Anything you do with db_session is in the same transaction as the #
+      # resource creation.  Resource is the new resource not yet added to the #
+      # database.
+      pass
+```
+
 ### Post-method functionality
 
-To do something after success of a method, after special methods as follows:
+To do something after success of a method, add special methods as follows:
 
 ```
 class AccountCollectionResource(CollectionResource):
