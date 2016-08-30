@@ -161,7 +161,13 @@ class CollectionResource(BaseResource):
                 # Value is set using a function, so we cannot tell what type it will be
                 attributes[key] = value
                 continue
-            column = mapper.columns[key]
+            try:
+                column = mapper.columns[key]
+            except KeyError:
+                # Assume programmer has done their job of filtering out invalid
+                # columns, and that they are going to use this field for some
+                # custom purpose
+                continue
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):
