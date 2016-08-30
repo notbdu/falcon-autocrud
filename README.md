@@ -324,6 +324,24 @@ class EmployeeCollectionResource(CollectionResource):
         return query
 ```
 
+Alternatively, for arguments that are part of the URL you may use attr_map directly:
+
+```
+class CompanyEmployeeCollectionResource(CollectionResource):
+    model = Employee
+
+    attr_map = {
+        'company_id':   lambda req, resp, query, *args, **kwargs: query.join(Employee.company).filter(Company.id == kwargs['company_id'])
+    }
+
+```
+
+This is useful for the following sort of URL:
+
+```
+GET /companies/{company_id}/employees
+```
+
 ### Sorting
 
 You can specify a default sorting of results from the collection search.  The

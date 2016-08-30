@@ -122,14 +122,17 @@ class BaseResource(object):
             attr: _serialize_value(attr, getattr(resource, attr)) for attr in attrs.keys() if isinstance(attrs[attr], ColumnProperty)
         }
 
-    def apply_arg_filter(self, resources, kwargs):
+    def apply_arg_filter(self, req, resp, resources, kwargs):
         for key, value in kwargs.items():
             key = getattr(self, 'attr_map', {}).get(key, key)
-            attr = getattr(self.model, key, None)
-            if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
-                raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
-            resources = resources.filter(attr == value)
+            if callable(key):
+                resources = key(req, resp, resources, **kwargs)
+            else:
+                attr = getattr(self.model, key, None)
+                if attr is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
+                    self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+                    raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
+                resources = resources.filter(attr == value)
         return resources
 
 class CollectionResource(BaseResource):
@@ -193,7 +196,7 @@ class CollectionResource(BaseResource):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
 
         with session_scope(self.db_engine) as db_session:
-            resources = self.apply_arg_filter(db_session.query(self.model), kwargs)
+            resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             resources = self.filter_by_params(
                 self.get_filter(
@@ -418,7 +421,7 @@ class SingleResource(BaseResource):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
 
         with session_scope(self.db_engine) as db_session:
-            resources = self.apply_arg_filter(db_session.query(self.model), kwargs)
+            resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             resources = self.get_filter(req, resp, resources, *args, **kwargs)
 
@@ -452,7 +455,7 @@ class SingleResource(BaseResource):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
 
         with session_scope(self.db_engine) as db_session:
-            resources = self.apply_arg_filter(db_session.query(self.model), kwargs)
+            resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             try:
                 resource = resources.one()
@@ -514,7 +517,7 @@ class SingleResource(BaseResource):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
 
         with session_scope(self.db_engine) as db_session:
-            resources = self.apply_arg_filter(db_session.query(self.model), kwargs)
+            resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             try:
                 resource = resources.one()
@@ -579,7 +582,7 @@ class SingleResource(BaseResource):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
 
         with session_scope(self.db_engine) as db_session:
-            resources = self.apply_arg_filter(db_session.query(self.model), kwargs)
+            resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             try:
                 resource = resources.one()

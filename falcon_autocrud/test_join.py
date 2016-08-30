@@ -1,6 +1,6 @@
 from .test_base import BaseTestCase
 
-from .resource import CollectionResource
+from .resource import CollectionResource, SingleResource
 from .test_fixtures import Company, Employee
 
 
@@ -14,12 +14,28 @@ class EmployeeCollectionResource(CollectionResource):
             query = query.join(Employee.company).filter(Company.name == company_name)
         return query
 
+class CompanyEmployeeCollectionResource(CollectionResource):
+    model = Employee
+
+    attr_map = {
+        'company_id':   lambda req, resp, query, *args, **kwargs: query.join(Employee.company).filter(Company.id == kwargs['company_id'])
+    }
+
+class CompanyEmployeeResource(SingleResource):
+    model = Employee
+
+    attr_map = {
+        'company_id':   lambda req, resp, query, *args, **kwargs: query.join(Employee.company).filter(Company.id == kwargs['company_id'])
+    }
+
 
 class PreconditionTest(BaseTestCase):
     def create_test_resources(self):
         self.app.add_route('/employees', EmployeeCollectionResource(self.db_engine))
+        self.app.add_route('/companies/{company_id}/employees', CompanyEmployeeCollectionResource(self.db_engine))
+        self.app.add_route('/companies/{company_id}/employees/{id}', CompanyEmployeeResource(self.db_engine))
 
-    def test_collection_get_filter(self):
+    def create_common_fixtures(self):
         self.db_session.add(Company(id=1, name="Initech"))
         self.db_session.add(Company(id=2, name="Parrots R Us"))
         self.db_session.add(Employee(id=1, name="Jim", company_id=1))
@@ -29,6 +45,7 @@ class PreconditionTest(BaseTestCase):
         self.db_session.add(Employee(id=5, name="Jane", company_id=1))
         self.db_session.commit()
 
+    def test_collection_get_filter(self):
         response, = self.simulate_request('/employees', query_string='company_name=Parrots%20R%20Us', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(
             response,
@@ -57,8 +74,126 @@ class PreconditionTest(BaseTestCase):
                      "lunch_start": None,
                      "pay_rate":    None,
                      "start_time":  None,
+                  },
+               ]
+            }
+        )
+
+    def test_collection_attr_map(self):
+        response, = self.simulate_request('/companies/1/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(
+            response,
+            {
+               "data" : [
+                  {
+                     "id":          1,
+                     "company_id":  1,
+                     "name":        "Jim",
+                     "caps_name":   None,
+                     "end_time":    None,
+                     "joined":      None,
+                     "left":        None,
+                     "lunch_start": None,
+                     "pay_rate":    None,
+                     "start_time":  None,
+                  },
+                  {
+                     "id":          2,
+                     "company_id":  1,
+                     "name":        "Bob",
+                     "caps_name":   None,
+                     "end_time":    None,
+                     "joined":      None,
+                     "left":        None,
+                     "lunch_start": None,
+                     "pay_rate":    None,
+                     "start_time":  None,
+                  },
+                  {
+                     "id":          5,
+                     "company_id":  1,
+                     "name":        "Jane",
+                     "caps_name":   None,
+                     "end_time":    None,
+                     "joined":      None,
+                     "left":        None,
+                     "lunch_start": None,
+                     "pay_rate":    None,
+                     "start_time":  None,
                   }
                ]
             }
         )
 
+        response, = self.simulate_request('/companies/2/employees', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(
+            response,
+            {
+               "data" : [
+                  {
+                     "id":          3,
+                     "company_id":  2,
+                     "name":        "Jack",
+                     "caps_name":   None,
+                     "end_time":    None,
+                     "joined":      None,
+                     "left":        None,
+                     "lunch_start": None,
+                     "pay_rate":    None,
+                     "start_time":  None,
+                  },
+                  {
+                     "id":          4,
+                     "company_id":  2,
+                     "name":        "Alice",
+                     "caps_name":   None,
+                     "end_time":    None,
+                     "joined":      None,
+                     "left":        None,
+                     "lunch_start": None,
+                     "pay_rate":    None,
+                     "start_time":  None,
+                  },
+               ]
+            }
+        )
+
+        response, = self.simulate_request('/companies/1/employees/1', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(
+            response,
+            {
+                "data" : {
+                    "id":          1,
+                    "company_id":  1,
+                    "name":        "Jim",
+                    "caps_name":   None,
+                    "end_time":    None,
+                    "joined":      None,
+                    "left":        None,
+                    "lunch_start": None,
+                    "pay_rate":    None,
+                    "start_time":  None,
+                }
+            }
+        )
+        response, = self.simulate_request('/companies/2/employees/3', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(
+            response,
+            {
+                "data" : {
+                    "id":          3,
+                    "company_id":  2,
+                    "name":        "Jack",
+                    "caps_name":   None,
+                    "end_time":    None,
+                    "joined":      None,
+                    "left":        None,
+                    "lunch_start": None,
+                    "pay_rate":    None,
+                    "start_time":  None,
+                }
+            }
+        )
+
+        response = self.simulate_request('/companies/1/employees/3', method='GET', headers={'Accept': 'application/json'})
+        self.assertNotFound(response)
