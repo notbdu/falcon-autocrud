@@ -135,6 +135,12 @@ class BaseResource(object):
                 resources = resources.filter(attr == value)
         return resources
 
+    def apply_default_attributes(self, defaults_type, req, resp, attributes):
+        defaults = getattr(self, defaults_type, {})
+        for key, setter in defaults.items():
+            if key not in attributes:
+                attributes[key] = setter(req, resp, attributes)
+
 class CollectionResource(BaseResource):
     """
     Provides CRUD facilities for a resource collection.
@@ -254,10 +260,7 @@ class CollectionResource(BaseResource):
 
         attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
 
-        defaults = getattr(self, 'post_defaults', {})
-        for key, setter in defaults.items():
-            if key not in attributes:
-                attributes[key] = setter(req, resp, attributes)
+        self.apply_default_attributes('post_defaults', req, resp, attributes)
 
         resource = self.model(**attributes)
 
@@ -529,10 +532,7 @@ class SingleResource(BaseResource):
 
             attributes = self.deserialize(req.context['doc'])
 
-            defaults = getattr(self, 'put_defaults', {})
-            for key, setter in defaults.items():
-                if key not in attributes:
-                    attributes[key] = setter(req, resp, attributes)
+            self.apply_default_attributes('put_defaults', req, resp, attributes)
 
             for key, value in attributes.items():
                 setattr(resource, key, value)
@@ -605,10 +605,7 @@ class SingleResource(BaseResource):
 
             attributes = self.deserialize(req.context['doc'])
 
-            defaults = getattr(self, 'patch_defaults', {})
-            for key, setter in defaults.items():
-                if key not in attributes:
-                    attributes[key] = setter(req, resp, attributes)
+            self.apply_default_attributes('patch_defaults', req, resp, attributes)
 
             for key, value in attributes.items():
                 setattr(resource, key, value)
