@@ -123,3 +123,72 @@ class SortTest(BaseTestCase):
     def test_invalid_sort(self):
         response, = self.simulate_request('/characters', query_string='__sort=-name,id,foo', method='GET', headers={'Accept': 'application/json'})
         self.assertBadRequest(response, description='An attribute provided for sorting is invalid')
+
+    def test_paging(self):
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=0&__limit=5', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 3, 'name': 'Thea'},
+                {'id': 7, 'name': 'Roy'},
+                {'id': 6, 'name': 'Oliver'},
+                {'id': 4, 'name': 'Laurel'},
+                {'id': 1, 'name': 'John'},
+            ]
+        })
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=5&__limit=5', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 8, 'name': 'Iris'},
+                {'id': 5, 'name': 'Felicity'},
+                {'id': 10, 'name': 'Cisco'},
+                {'id': 11, 'name': 'Cisco'},
+                {'id': 12, 'name': 'Cisco'},
+            ]
+        })
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=10&__limit=5', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 9, 'name': 'Caitlin'},
+                {'id': 2, 'name': 'Barry'},
+            ]
+        })
+
+    def test_paging_any_position(self):
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=3&__limit=8', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 4, 'name': 'Laurel'},
+                {'id': 1, 'name': 'John'},
+                {'id': 8, 'name': 'Iris'},
+                {'id': 5, 'name': 'Felicity'},
+                {'id': 10, 'name': 'Cisco'},
+                {'id': 11, 'name': 'Cisco'},
+                {'id': 12, 'name': 'Cisco'},
+                {'id': 9, 'name': 'Caitlin'},
+            ]
+        })
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=7&__limit=3', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 10, 'name': 'Cisco'},
+                {'id': 11, 'name': 'Cisco'},
+                {'id': 12, 'name': 'Cisco'},
+            ]
+        })
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=7', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 10, 'name': 'Cisco'},
+                {'id': 11, 'name': 'Cisco'},
+                {'id': 12, 'name': 'Cisco'},
+                {'id': 9, 'name': 'Caitlin'},
+                {'id': 2, 'name': 'Barry'},
+            ]
+        })
+
+    def test_paging_types(self):
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=abc', method='GET', headers={'Accept': 'application/json'})
+        self.assertBadRequest(response, title='Invalid parameter', description='The "__offset" parameter is invalid. The value must be an integer.')
+
+        response, = self.simulate_request('/characters', query_string='__sort=-name,id&__limit=abc', method='GET', headers={'Accept': 'application/json'})
+        self.assertBadRequest(response, title='Invalid parameter', description='The "__limit" parameter is invalid. The value must be an integer.')

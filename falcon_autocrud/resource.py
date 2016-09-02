@@ -243,6 +243,10 @@ class CollectionResource(BaseResource):
                     else:
                         order_fields.append(attr)
                 resources = resources.order_by(*order_fields)
+            if req.get_param_as_int('__offset'):
+                resources = resources.offset(req.get_param_as_int('__offset'))
+            if req.get_param_as_int('__limit'):
+                resources = resources.limit(req.get_param_as_int('__limit'))
 
             resp.status = falcon.HTTP_OK
             req.context['result'] = {

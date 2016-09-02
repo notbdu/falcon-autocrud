@@ -383,3 +383,15 @@ The caller can specify a sort (which overrides the default if defined):
 ```
 GET /path/to/collection?__sort=name,-salary
 ```
+
+### Paging
+
+The caller can specify an offset and/or limit to collection GET to provide
+paging of search results.
+
+```
+GET /path/to/collection?__offset=10&limit=10
+```
+
+This is generally most useful in combination with __sort to ensure consistency
+of sorting.
