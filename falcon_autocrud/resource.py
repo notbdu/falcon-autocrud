@@ -5,6 +5,7 @@ import falcon.errors
 import json
 import sqlalchemy.exc
 import sqlalchemy.orm.exc
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm.session import make_transient
@@ -41,8 +42,10 @@ except ImportError:
 
 
 class BaseResource(object):
-    def __init__(self, db_engine, logger=None):
+    def __init__(self, db_engine, logger=None, sessionmaker_=sessionmaker, sessionmaker_kwargs={}):
         self.db_engine = db_engine
+        self.sessionmaker = sessionmaker_
+        self.sessionmaker_kwargs = sessionmaker_kwargs
         if logger is None:
             logger = logging.getLogger('autocrud')
         self.logger = logger
@@ -208,7 +211,7 @@ class CollectionResource(BaseResource):
         if 'GET' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
 
-        with session_scope(self.db_engine) as db_session:
+        with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             resources = self.filter_by_params(
@@ -271,7 +274,7 @@ class CollectionResource(BaseResource):
 
         attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
 
-        with session_scope(self.db_engine) as db_session:
+        with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             self.apply_default_attributes('post_defaults', req, resp, attributes)
 
             resource = self.model(**attributes)
@@ -331,7 +334,7 @@ class CollectionResource(BaseResource):
         mapper  = inspect(self.model)
         patches = req.context['doc']['patches']
 
-        with session_scope(self.db_engine) as db_session:
+        with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             for index, patch in enumerate(patches):
                 # Only support adding entities in a collection patch, for now
                 if 'op' not in patch or patch['op'] not in ['add']:
@@ -444,7 +447,7 @@ class SingleResource(BaseResource):
         if 'GET' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
 
-        with session_scope(self.db_engine) as db_session:
+        with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             resources = self.get_filter(req, resp, resources, *args, **kwargs)
@@ -478,7 +481,7 @@ class SingleResource(BaseResource):
         if 'DELETE' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
 
-        with session_scope(self.db_engine) as db_session:
+        with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             try:
@@ -540,7 +543,7 @@ class SingleResource(BaseResource):
         if 'PUT' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
 
-        with session_scope(self.db_engine) as db_session:
+        with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             try:
@@ -602,7 +605,7 @@ class SingleResource(BaseResource):
         if 'PATCH' not in getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'PUT', 'PATCH', 'DELETE']))
 
-        with session_scope(self.db_engine) as db_session:
+        with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             resources = self.apply_arg_filter(req, resp, db_session.query(self.model), kwargs)
 
             try:
