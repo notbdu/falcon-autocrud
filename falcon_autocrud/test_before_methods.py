@@ -19,6 +19,7 @@ class Owner(Base):
 
 class AccountCollectionResource(CollectionResource):
     model = Account
+    default_sort = ['id']
 
 class BeforeAccountCollectionResource(CollectionResource):
     model = Account

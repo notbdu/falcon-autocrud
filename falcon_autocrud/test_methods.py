@@ -8,6 +8,7 @@ from .resource import CollectionResource, SingleResource
 
 class AccountCollectionResource(CollectionResource):
     model = Account
+    default_sort = ['id']
 
 class AccountResource(SingleResource):
     model = Account

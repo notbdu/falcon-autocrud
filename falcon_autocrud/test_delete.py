@@ -14,6 +14,7 @@ class DeletableAccount(Account):
 
 class AccountCollectionResource(CollectionResource):
     model = DeletableAccount
+    default_sort = ['id']
 
 class AccountResource(SingleResource):
     model = DeletableAccount
