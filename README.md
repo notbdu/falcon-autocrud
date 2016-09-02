@@ -395,3 +395,13 @@ GET /path/to/collection?__offset=10&limit=10
 
 This is generally most useful in combination with __sort to ensure consistency
 of sorting.
+
+### Limiting response fields
+
+You can limit which fields are returned to the client like this:
+
+```
+class EmployeeCollectionResource(CollectionResource):
+    model = Employee
+    fields = ['id', 'name']
+```

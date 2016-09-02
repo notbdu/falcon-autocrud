@@ -117,9 +117,10 @@ class BaseResource(object):
                     raise UnsupportedGeometryType('Unsupported geometry type {0}'.format(value.geometryType()))
             else:
                 return value
-        attrs = inspect(self.model).attrs
+        attrs           = inspect(self.model).attrs
+        response_fields = getattr(self, 'response_fields', attrs.keys())
         return {
-            attr: _serialize_value(attr, getattr(resource, attr)) for attr in attrs.keys() if isinstance(attrs[attr], ColumnProperty)
+            attr: _serialize_value(attr, getattr(resource, attr)) for attr in response_fields if isinstance(attrs[attr], ColumnProperty)
         }
 
     def apply_arg_filter(self, req, resp, resources, kwargs):
