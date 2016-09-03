@@ -227,7 +227,7 @@ class CollectionResource(BaseResource):
             using_default_sort  = True
             if '__sort' in req.params:
                 using_default_sort = False
-                sort = req.params['__sort']
+                sort = req.get_param_as_list('__sort')
             if sort is not None:
                 order_fields = []
                 for field_name in sort:

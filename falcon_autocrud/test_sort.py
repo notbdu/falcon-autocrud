@@ -101,6 +101,43 @@ class SortTest(BaseTestCase):
             ]
         })
 
+    def test_single_user_defined_sort(self):
+        response, = self.simulate_request('/characters', query_string='__sort=id', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 1, 'name': 'John'},
+                {'id': 2, 'name': 'Barry'},
+                {'id': 3, 'name': 'Thea'},
+                {'id': 4, 'name': 'Laurel'},
+                {'id': 5, 'name': 'Felicity'},
+                {'id': 6, 'name': 'Oliver'},
+                {'id': 7, 'name': 'Roy'},
+                {'id': 8, 'name': 'Iris'},
+                {'id': 9, 'name': 'Caitlin'},
+                {'id': 10, 'name': 'Cisco'},
+                {'id': 11, 'name': 'Cisco'},
+                {'id': 12, 'name': 'Cisco'},
+            ]
+        })
+
+        response, = self.simulate_request('/characters', query_string='__sort=-id', method='GET', headers={'Accept': 'application/json'})
+        self.assertOK(response, {
+            'data': [
+                {'id': 12, 'name': 'Cisco'},
+                {'id': 11, 'name': 'Cisco'},
+                {'id': 10, 'name': 'Cisco'},
+                {'id': 9, 'name': 'Caitlin'},
+                {'id': 8, 'name': 'Iris'},
+                {'id': 7, 'name': 'Roy'},
+                {'id': 6, 'name': 'Oliver'},
+                {'id': 5, 'name': 'Felicity'},
+                {'id': 4, 'name': 'Laurel'},
+                {'id': 3, 'name': 'Thea'},
+                {'id': 2, 'name': 'Barry'},
+                {'id': 1, 'name': 'John'},
+            ]
+        })
+
     def test_user_defined_sort_overrides_default(self):
         response, = self.simulate_request('/default-sort-characters', query_string='__sort=-name,id', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
