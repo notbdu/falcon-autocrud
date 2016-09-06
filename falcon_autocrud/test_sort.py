@@ -170,7 +170,12 @@ class SortTest(BaseTestCase):
                 {'id': 6, 'name': 'Oliver'},
                 {'id': 4, 'name': 'Laurel'},
                 {'id': 1, 'name': 'John'},
-            ]
+            ],
+            'meta': {
+                'offset':   0,
+                'limit':    5,
+                'total':    12,
+            }
         })
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=5&__limit=5', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
@@ -180,14 +185,24 @@ class SortTest(BaseTestCase):
                 {'id': 10, 'name': 'Cisco'},
                 {'id': 11, 'name': 'Cisco'},
                 {'id': 12, 'name': 'Cisco'},
-            ]
+            ],
+            'meta': {
+                'offset':   5,
+                'limit':    5,
+                'total':    12,
+            }
         })
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=10&__limit=5', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
                 {'id': 9, 'name': 'Caitlin'},
                 {'id': 2, 'name': 'Barry'},
-            ]
+            ],
+            'meta': {
+                'offset':   10,
+                'limit':    5,
+                'total':    12,
+            }
         })
 
     def test_paging_any_position(self):
@@ -202,7 +217,12 @@ class SortTest(BaseTestCase):
                 {'id': 11, 'name': 'Cisco'},
                 {'id': 12, 'name': 'Cisco'},
                 {'id': 9, 'name': 'Caitlin'},
-            ]
+            ],
+            'meta': {
+                'offset':   3,
+                'limit':    8,
+                'total':    12,
+            }
         })
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=7&__limit=3', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
@@ -210,7 +230,12 @@ class SortTest(BaseTestCase):
                 {'id': 10, 'name': 'Cisco'},
                 {'id': 11, 'name': 'Cisco'},
                 {'id': 12, 'name': 'Cisco'},
-            ]
+            ],
+            'meta': {
+                'offset':   7,
+                'limit':    3,
+                'total':    12,
+            }
         })
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=7', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
@@ -220,7 +245,11 @@ class SortTest(BaseTestCase):
                 {'id': 12, 'name': 'Cisco'},
                 {'id': 9, 'name': 'Caitlin'},
                 {'id': 2, 'name': 'Barry'},
-            ]
+            ],
+            'meta': {
+                'offset':   7,
+                'total':    12,
+            }
         })
 
     def test_paging_types(self):

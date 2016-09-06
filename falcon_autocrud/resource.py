@@ -247,17 +247,28 @@ class CollectionResource(BaseResource):
                     else:
                         order_fields.append(attr)
                 resources = resources.order_by(*order_fields)
+            count = None
             if req.get_param_as_int('__offset'):
+                count     = resources.count()
                 resources = resources.offset(req.get_param_as_int('__offset'))
             if req.get_param_as_int('__limit'):
+                if count is None:
+                    count     = resources.count()
                 resources = resources.limit(req.get_param_as_int('__limit'))
 
             resp.status = falcon.HTTP_OK
-            req.context['result'] = {
+            result = {
                 'data': [
                     self.serialize(resource) for resource in resources
                 ],
             }
+            if '__offset' in req.params or '__limit' in req.params:
+                result['meta'] = {'total': count}
+                if '__offset' in req.params:
+                    result['meta']['offset'] = req.get_param_as_int('__offset')
+                if '__limit' in req.params:
+                    result['meta']['limit'] = req.get_param_as_int('__limit')
+            req.context['result'] = result
 
             after_get = getattr(self, 'after_get', None)
             if after_get is not None:
