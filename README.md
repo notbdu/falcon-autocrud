@@ -403,5 +403,5 @@ You can limit which fields are returned to the client like this:
 ```
 class EmployeeCollectionResource(CollectionResource):
     model = Employee
-    fields = ['id', 'name']
+    response_fields = ['id', 'name']
 ```
