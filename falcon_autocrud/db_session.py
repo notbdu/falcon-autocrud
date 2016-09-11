@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 @contextmanager
 def session_scope(db_engine, sessionmaker_=sessionmaker, **kwargs):
     """
-    Provide a scoped db session for a series of operarions.
+    Provide a scoped db session for a series of operations.
     The session is created immediately before the scope begins, and is closed
     on scope exit.
     """
