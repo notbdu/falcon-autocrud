@@ -91,7 +91,8 @@ class BaseResource(object):
                 raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
         return resources
 
-    def serialize(self, resource):
+    def serialize(self, resource, response_fields=None, geometry_axes=None):
+        attrs = inspect(resource.__class__).attrs
         def _serialize_value(name, value):
             if isinstance(value, datetime):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -102,16 +103,16 @@ class BaseResource(object):
             elif support_geo and isinstance(value, WKBElement):
                 value = geoalchemy2.shape.to_shape(value)
                 if isinstance(value, Point):
-                    axes = getattr(self, 'geometry_axes', {}).get(name, ['x', 'y'])
+                    axes = (geometry_axes or {}).get(name, ['x', 'y'])
                     return {axes[0]: value.x, axes[1]: value.y}
                 elif isinstance(value, LineString):
-                    axes = getattr(self, 'geometry_axes', {}).get(name, ['x', 'y'])
+                    axes = (geometry_axes or {}).get(name, ['x', 'y'])
                     return [
                         {axes[0]: point[0], axes[1]: point[1]}
                         for point in list(value.coords)
                     ]
                 elif isinstance(value, Polygon):
-                    axes = getattr(self, 'geometry_axes', {}).get(name, ['x', 'y'])
+                    axes = (geometry_axes or {}).get(name, ['x', 'y'])
                     return [
                         {axes[0]: point[0], axes[1]: point[1]}
                         for point in list(value.boundary.coords)
@@ -120,8 +121,8 @@ class BaseResource(object):
                     raise UnsupportedGeometryType('Unsupported geometry type {0}'.format(value.geometryType()))
             else:
                 return value
-        attrs           = inspect(self.model).attrs
-        response_fields = getattr(self, 'response_fields', attrs.keys())
+        if response_fields is None:
+            response_fields = attrs.keys()
         return {
             attr: _serialize_value(attr, getattr(resource, attr)) for attr in response_fields if isinstance(attrs[attr], ColumnProperty)
         }
@@ -259,7 +260,7 @@ class CollectionResource(BaseResource):
             resp.status = falcon.HTTP_OK
             result = {
                 'data': [
-                    self.serialize(resource) for resource in resources
+                    self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})) for resource in resources
                 ],
             }
             if '__offset' in req.params or '__limit' in req.params:
@@ -316,7 +317,7 @@ class CollectionResource(BaseResource):
 
             resp.status = falcon.HTTP_CREATED
             req.context['result'] = {
-                'data': self.serialize(resource),
+                'data': self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
             }
 
             after_post = getattr(self, 'after_post', None)
@@ -472,9 +473,32 @@ class SingleResource(BaseResource):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
             resp.status = falcon.HTTP_OK
-            req.context['result'] = {
-                'data': self.serialize(resource),
+            result = {
+                'data': self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
             }
+            if '__included' in req.params:
+                allowed_included = getattr(self, 'allowed_included', {})
+                result['included'] = []
+                for included in req.get_param_as_list('__included'):
+                    if included not in allowed_included:
+                        raise falcon.errors.HTTPBadRequest('Invalid parameter', 'The "__included" parameter includes invalid entities')
+                    included_resources  = allowed_included[included]['link'](resource)
+                    response_fields     = allowed_included[included].get('response_fields')
+                    geometry_axes       = allowed_included[included].get('geometry_axes')
+
+                    for included_resource in included_resources:
+                        primary_key, = [
+                            attr
+                            for attr in inspect(included_resource.__class__).attrs.values()
+                            if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
+                        ]
+                        result['included'].append({
+                            'id':           getattr(resource, primary_key.key),
+                            'type':         included,
+                            'attributes':   self.serialize(included_resource, response_fields, geometry_axes),
+                        })
+
+            req.context['result'] = result
 
             after_get = getattr(self, 'after_get', None)
             if after_get is not None:
@@ -594,7 +618,7 @@ class SingleResource(BaseResource):
 
             resp.status = falcon.HTTP_OK
             req.context['result'] = {
-                'data': self.serialize(resource),
+                'data': self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
             }
 
             after_put = getattr(self, 'after_put', None)
@@ -673,7 +697,7 @@ class SingleResource(BaseResource):
 
             resp.status = falcon.HTTP_OK
             req.context['result'] = {
-                'data': self.serialize(resource),
+                'data': self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
             }
 
             after_patch = getattr(self, 'after_patch', None)
