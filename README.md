@@ -36,6 +36,9 @@ export AUTOCRUD_DSN=postgresql+pg8000://myuser:mypassword@localhost:5432
 nosetests
 ```
 
+Some tests are run only when testing on Postgres due to only being relevant to
+Postgres, such as when testing features to do with Postgres data types.
+
 ## Usage
 
 Declare your SQLAlchemy models:

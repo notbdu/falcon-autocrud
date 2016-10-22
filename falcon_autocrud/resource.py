@@ -10,6 +10,7 @@ from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm.session import make_transient
 import sqlalchemy.sql.sqltypes
+import uuid
 import logging
 import sys
 
@@ -94,6 +95,8 @@ class BaseResource(object):
     def serialize(self, resource, response_fields=None, geometry_axes=None):
         attrs = inspect(resource.__class__).attrs
         def _serialize_value(name, value):
+            if isinstance(value, uuid.UUID):
+                return value.hex
             if isinstance(value, datetime):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
             elif isinstance(value, time):
