@@ -346,7 +346,15 @@ class CollectionResource(BaseResource):
         if 'PATCH' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
 
-        mapper  = inspect(self.model)
+        patch_paths = getattr(self, 'patch_paths', {})
+        if len(patch_paths) == 0:
+            patch_paths['/'] = self.model
+        patch_lookups = {
+            path: {
+                'model':    model,
+                'mapper':   inspect(model),
+            } for path, model in patch_paths.items()
+        }
         patches = req.context['doc']['patches']
 
         with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
@@ -355,8 +363,12 @@ class CollectionResource(BaseResource):
                 if 'op' not in patch or patch['op'] not in ['add']:
                     raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid'.format(index))
                 if patch['op'] == 'add':
-                    if 'path' not in patch or patch['path'] != '/':
+                    if 'path' not in patch or patch['path'] not in patch_paths:
                         raise falcon.errors.HTTPBadRequest('Invalid patch', 'Patch {0} is not valid for op {1}'.format(index, patch['op']))
+
+                    model   = patch_lookups[patch['path']]['model']
+                    mapper  = patch_lookups[patch['path']]['mapper']
+
                     try:
                         patch_value = patch['value']
                     except KeyError:
@@ -364,8 +376,8 @@ class CollectionResource(BaseResource):
                     args = {}
                     for key, value in kwargs.items():
                         key = getattr(self, 'attr_map', {}).get(key, key)
-                        if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                            self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+                        if getattr(model, key, None) is None or not isinstance(inspect(model).attrs[key], ColumnProperty):
+                            self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(model, key))
                             raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
                         args[key] = value
                     for key, value in patch_value.items():
@@ -373,7 +385,7 @@ class CollectionResource(BaseResource):
                             args[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
                         else:
                             args[key] = value
-                    resource = self.model(**args)
+                    resource = model(**args)
                     db_session.add(resource)
 
             try:

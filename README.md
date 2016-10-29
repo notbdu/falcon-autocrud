@@ -408,3 +408,49 @@ class EmployeeCollectionResource(CollectionResource):
     model = Employee
     response_fields = ['id', 'name']
 ```
+
+### Bulk operations
+
+You can bulk add entities using a PATCH method to a collection.  If the
+collection is defined in the standard way, you are limited to adding to only
+that model:
+
+```
+class EmployeeCollectionResource(CollectionResource):
+    model = Employee
+```
+
+To add to the employee collection, each operation's path must be '/':
+
+```
+echo '{"patches": [{"op": "add", "path": "/", "value": {"name": "Jim"}}]}' | http PATCH http://localhost/employees
+```
+
+If you would like to be able to add to multiple types of collection in one
+bulk update, define the path and model for each in a special collection:
+
+```
+class RootResource(CollectionResource):
+    patch_paths = {
+      '/employees': Employee,
+      '/accounts':  Account,
+    }
+
+app.add_route('/', RootResource(db_engine))
+```
+
+To add to the collections, each operation's path must be in the defined
+patch_paths:
+
+```
+cat patches.json
+{
+  "patches": [
+    {"op": "add", "path": "/employees", "value": {"name": "Jim"}}
+    {"op": "add", "path": "/accounts", "value": {"name": "Sales"}}
+  ]
+}
+cat patches.json | http PATCH http://localhost/employees
+```
+
+All the operations done in a single PATCH are performed within a transaction.
