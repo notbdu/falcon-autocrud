@@ -430,16 +430,18 @@ class Employee(Base):
 class CompanyCollectionResource(CollectionResource):
     model = Company
     allow_subresources = True
+```
 
+```
 cat post.json
 {
   name: "Initech",
   employees: [
     {
-      name: 'Alice'
+      name: "Alice"
     },
     {
-      name: 'Bob'
+      name: "Bob"
     }
   ]
 }
