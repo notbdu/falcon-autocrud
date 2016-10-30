@@ -38,16 +38,7 @@ class _null_handler(logging.Handler):
     def emit(self, record):
         pass
 
-class RequireJSON(object):
-    def process_resource(self, req, resp, resource, params):
-        if _get_response_schema(resource, req) and not req.client_accepts_json:
-            raise falcon.HTTPNotAcceptable('This API supports only JSON-encoded responses')
-        if req.method in ('POST', 'PUT', 'PATCH'):
-            if _get_request_schema(req, resource) is not None:
-                if req.content_type is None or 'application/json' not in req.content_type:
-                    raise falcon.HTTPUnsupportedMediaType('This API supports only JSON-encoded requests')
-
-class JSONTranslator(object):
+class Middleware(object):
     def __init__(self, logger=None):
         if logger is None:
             # Default to no logging if no logger provided
@@ -56,8 +47,15 @@ class JSONTranslator(object):
         self.logger = logger
 
     def process_resource(self, req, resp, resource, params):
+        if _get_response_schema(resource, req) and not req.client_accepts_json:
+            raise falcon.HTTPNotAcceptable('This API supports only JSON-encoded responses')
+
         if resource is None or req.method not in ['POST', 'PUT', 'PATCH']:
             return
+
+        if _get_request_schema(req, resource) is not None:
+            if req.content_type is None or 'application/json' not in req.content_type:
+                raise falcon.HTTPUnsupportedMediaType('This API supports only JSON-encoded requests')
 
         if 'application/json' in req.content_type:
             body = req.stream.read()

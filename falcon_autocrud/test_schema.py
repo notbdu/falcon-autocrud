@@ -1,4 +1,4 @@
-from .middleware import RequireJSON, JSONTranslator
+from .middleware import Middleware
 from .schema import request_schema, response_schema, SchemaDecoratorError
 
 import falcon, falcon.testing
@@ -165,10 +165,7 @@ class IOTest(unittest.TestCase):
         self.logger.addHandler(self.handler)
 
         self.app = falcon.API(
-            middleware=[
-                RequireJSON(),
-                JSONTranslator(self.logger),
-            ],
+            middleware=[Middleware(self.logger)],
         )
 
         self.non_json_resource          = NonJSONResource()

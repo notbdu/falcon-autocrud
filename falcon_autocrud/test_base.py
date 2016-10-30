@@ -1,6 +1,6 @@
 import falcon
 import falcon.testing
-from .middleware import RequireJSON, JSONTranslator
+from .middleware import Middleware
 import json
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy import create_engine
@@ -40,10 +40,7 @@ class BaseTestCase(unittest.TestCase):
         super(BaseTestCase, self).setUp()
 
         self.app = falcon.API(
-            middleware=[
-                RequireJSON(),
-                JSONTranslator(),
-            ],
+            middleware=[Middleware()],
         )
 
         Session = sessionmaker()

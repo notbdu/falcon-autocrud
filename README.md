@@ -74,15 +74,12 @@ classes:
 ```
 from sqlalchemy import create_engine
 import falcon
-from falcon_autocrud.middleware import RequireJSON, JSONTranslator
+from falcon_autocrud.middleware import Middleware
 
 db_engine = create_engine('sqlite:///stuff.db')
 
 app = falcon.API(
-    middleware=[
-        RequireJSON(),
-        JSONTranslator(),
-    ],
+    middleware=[Middleware()],
 )
 
 app.add_route('/employees', EmployeeCollectionResource(db_engine))
