@@ -74,14 +74,14 @@ classes:
 ```
 from sqlalchemy import create_engine
 import falcon
-import falconjsonio.middleware
+from falcon_autocrud.middleware import RequireJSON, JSONTranslator
 
 db_engine = create_engine('sqlite:///stuff.db')
 
 app = falcon.API(
     middleware=[
-        falconjsonio.middleware.RequireJSON(),
-        falconjsonio.middleware.JSONTranslator(),
+        RequireJSON(),
+        JSONTranslator(),
     ],
 )
 

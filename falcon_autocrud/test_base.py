@@ -1,6 +1,6 @@
 import falcon
 import falcon.testing
-import falconjsonio.middleware, falconjsonio.schema
+from .middleware import RequireJSON, JSONTranslator
 import json
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy import create_engine
@@ -41,8 +41,8 @@ class BaseTestCase(unittest.TestCase):
 
         self.app = falcon.API(
             middleware=[
-                falconjsonio.middleware.RequireJSON(),
-                falconjsonio.middleware.JSONTranslator(),
+                RequireJSON(),
+                JSONTranslator(),
             ],
         )
 

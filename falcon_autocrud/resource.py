@@ -304,7 +304,7 @@ class CollectionResource(BaseResource):
             except sqlalchemy.exc.IntegrityError as err:
                 # Cases such as unallowed NULL value should have been checked
                 # before we got here (e.g. validate against schema
-                # using falconjsonio) - therefore assume this is a UNIQUE
+                # using the middleware) - therefore assume this is a UNIQUE
                 # constraint violation
                 db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
@@ -393,7 +393,7 @@ class CollectionResource(BaseResource):
             except sqlalchemy.exc.IntegrityError as err:
                 # Cases such as unallowed NULL value should have been checked
                 # before we got here (e.g. validate against schema
-                # using falconjsonio) - therefore assume this is a UNIQUE
+                # using the middleware) - therefore assume this is a UNIQUE
                 # constraint violation
                 db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
@@ -617,7 +617,7 @@ class SingleResource(BaseResource):
             except sqlalchemy.exc.IntegrityError as err:
                 # Cases such as unallowed NULL value should have been checked
                 # before we got here (e.g. validate against schema
-                # using falconjsonio) - therefore assume this is a UNIQUE
+                # using the middleware) - therefore assume this is a UNIQUE
                 # constraint violation
                 db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
@@ -696,7 +696,7 @@ class SingleResource(BaseResource):
             except sqlalchemy.exc.IntegrityError as err:
                 # Cases such as unallowed NULL value should have been checked
                 # before we got here (e.g. validate against schema
-                # using falconjsonio) - therefore assume this is a UNIQUE
+                # using the middleware) - therefore assume this is a UNIQUE
                 # constraint violation
                 db_session.rollback()
                 raise falcon.errors.HTTPConflict('Conflict', 'Unique constraint violated')
