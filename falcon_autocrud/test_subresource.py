@@ -5,19 +5,58 @@ from .test_fixtures import Company, Employee
 
 from .resource import CollectionResource
 
-class CompanyCollectionResource(CollectionResource):
+class FlatCompanyCollectionResource(CollectionResource):
     model = Company
     methods = ['POST']
 
-class EmployeeCollectionResource(CollectionResource):
+class NonflatCollectionResource(CollectionResource):
+    allow_subresources = True
+
+class CompanyCollectionResource(NonflatCollectionResource):
+    model = Company
+    methods = ['POST']
+
+class EmployeeCollectionResource(NonflatCollectionResource):
     model = Employee
     methods = ['POST']
 
 
 class SubresourceTest(BaseTestCase):
     def create_test_resources(self):
+        self.app.add_route('/flat-companies', FlatCompanyCollectionResource(self.db_engine))
         self.app.add_route('/companies', CompanyCollectionResource(self.db_engine))
         self.app.add_route('/employees', EmployeeCollectionResource(self.db_engine))
+
+    def test_default_no_subresources(self):
+        post = {
+            'name':         'Initech',
+            'employees':    [
+                {
+                    'name':     'Bob',
+                    'joined':   '2016-10-01T00:00:00Z'
+                },
+                {
+                    'name':     'Jim',
+                    'joined':   '2016-10-02T00:00:00Z'
+                }
+            ]
+        }
+        response, = self.simulate_request('/flat-companies', method='POST', body=json.dumps(post), headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
+        self.assertCreated(response, {
+            'data': {
+                'id': 1,
+                'name': 'Initech',
+            }
+        })
+
+        company = self.db_session.query(Company).filter(Company.id == 1).one_or_none()
+        self.assertTrue(company is not None)
+        self.assertEqual(company.name, 'Initech')
+
+        self.assertEqual(company.employees, [])
+
+        employees = self.db_session.query(Employee).filter(Employee.company_id == 1).order_by(Employee.name).all()
+        self.assertEqual(employees, [])
 
     def test_one_to_many(self):
         post = {

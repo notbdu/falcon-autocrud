@@ -427,6 +427,10 @@ class Employee(Base):
     company_id  = Column(Integer, ForeignKey('companies.id'), nullable=True)
     company     = relationship('Company', back_populates='employees')
 
+class CompanyCollectionResource(CollectionResource):
+    model = Company
+    allow_subresources = True
+
 cat post.json
 {
   name: "Initech",
@@ -444,7 +448,9 @@ cat post.json | http POST http://localhost/companies
 ```
 
 This will create a company called Initech and two employees, who will be linked
-to Initech via Employee.company_id.
+to Initech via Employee.company_id.  Note the that CollectionResource subclass
+must have the attribute allow_subresources and set it to True, for this feature
+to be enabled.
 
 ### Bulk operations
 

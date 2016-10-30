@@ -303,7 +303,7 @@ class CollectionResource(BaseResource):
         if 'POST' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
 
-        attributes, linked = self.deserialize(self.model, kwargs, req.context['doc'] if 'doc' in req.context else None, True)
+        attributes, linked = self.deserialize(self.model, kwargs, req.context['doc'] if 'doc' in req.context else None, getattr(self, 'allow_subresources', False))
 
         with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             self.apply_default_attributes('post_defaults', req, resp, attributes)
