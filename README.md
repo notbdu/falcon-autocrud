@@ -406,6 +406,46 @@ class EmployeeCollectionResource(CollectionResource):
     response_fields = ['id', 'name']
 ```
 
+### Creating linked resources
+
+The collection POST method allows creation of linked resources in the one POST
+call.  If your model includes a relationship to the linked resource, you can
+include the attributes to use in the new linked resource, and the link will be
+automatically made in the database:
+
+```
+class Company(Base):
+    __tablename__ = 'companies'
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(50), unique=True)
+    employees   = relationship('Employee')
+
+class Employee(Base):
+    __tablename__ = 'employees'
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(50), unique=True)
+    company_id  = Column(Integer, ForeignKey('companies.id'), nullable=True)
+    company     = relationship('Company', back_populates='employees')
+
+cat post.json
+{
+  name: "Initech",
+  employees: [
+    {
+      name: 'Alice'
+    },
+    {
+      name: 'Bob'
+    }
+  ]
+}
+
+cat post.json | http POST http://localhost/companies
+```
+
+This will create a company called Initech and two employees, who will be linked
+to Initech via Employee.company_id.
+
 ### Bulk operations
 
 You can bulk add entities using a PATCH method to a collection.  If the

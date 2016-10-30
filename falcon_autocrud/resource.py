@@ -153,29 +153,45 @@ class CollectionResource(BaseResource):
     """
     Provides CRUD facilities for a resource collection.
     """
-    def deserialize(self, path_data, body_data):
-        mapper      = inspect(self.model)
+    def deserialize(self, model, path_data, body_data, allow_recursion=False):
+        mapper      = inspect(model)
         attributes  = {}
 
         for key, value in path_data.items():
             key = getattr(self, 'attr_map', {}).get(key, key)
-            if getattr(self.model, key, None) is None or not isinstance(inspect(self.model).attrs[key], ColumnProperty):
-                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(self.model, key))
+            if getattr(model, key, None) is None or not isinstance(inspect(model).attrs[key], ColumnProperty):
+                self.logger.error("Programming error: {0}.attr_map['{1}'] does not exist or is not a column".format(model, key))
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
             attributes[key] = value
 
+        deserialized = [attributes, {}]
+
         for key, value in body_data.items():
-            if isinstance(getattr(self.model, key, None), property):
+            if isinstance(getattr(model, key, None), property):
                 # Value is set using a function, so we cannot tell what type it will be
                 attributes[key] = value
                 continue
             try:
                 column = mapper.columns[key]
             except KeyError:
-                # Assume programmer has done their job of filtering out invalid
-                # columns, and that they are going to use this field for some
-                # custom purpose
-                continue
+                if not allow_recursion:
+                    # Assume programmer has done their job of filtering out invalid
+                    # columns, and that they are going to use this field for some
+                    # custom purpose
+                    continue
+                try:
+                    relationship = mapper.relationships[key]
+                    if relationship.uselist:
+                        for entity in value:
+                            deserialized[1][key] = [self.deserialize(relationship.table, {}, entity, False)[0] for entity in value]
+                    else:
+                        deserialized[1][key] = self.deserialize(relationship.table, {}, value, False)[0]
+                    continue
+                except KeyError:
+                    # Assume programmer has done their job of filtering out invalid
+                    # columns, and that they are going to use this field for some
+                    # custom purpose
+                    continue
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):
@@ -201,7 +217,7 @@ class CollectionResource(BaseResource):
                 attributes[key] = WKBElement(polygon.wkb, srid=4326)
             else:
                 attributes[key] = value
-        return attributes
+        return deserialized
 
     def get_filter(self, req, resp, query, *args, **kwargs):
         return query
@@ -287,7 +303,7 @@ class CollectionResource(BaseResource):
         if 'POST' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
 
-        attributes = self.deserialize(kwargs, req.context['doc'] if 'doc' in req.context else None)
+        attributes, linked = self.deserialize(self.model, kwargs, req.context['doc'] if 'doc' in req.context else None, True)
 
         with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             self.apply_default_attributes('post_defaults', req, resp, attributes)
@@ -299,6 +315,17 @@ class CollectionResource(BaseResource):
                 self.before_post(req, resp, db_session, resource, *args, **kwargs)
 
             db_session.add(resource)
+            mapper = inspect(self.model)
+            for key, value in linked.items():
+                relationship = mapper.relationships[key]
+                resource_class = relationship.mapper.entity
+                if relationship.uselist:
+                    for attributes in value:
+                        subresource = resource_class(**attributes)
+                        getattr(resource, key).append(subresource)
+                else:
+                    subresource = resource_class(**value)
+                    setattr(resource, key, subresource)
             try:
                 db_session.commit()
             except sqlalchemy.exc.IntegrityError as err:
