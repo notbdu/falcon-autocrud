@@ -29,6 +29,12 @@ class Employee(Base):
     end_time    = Column(Time, nullable=True)
     caps_name   = Column(String(50))
 
+class Team(Base):
+    __tablename__ = 'teams'
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(50))
+    characters  = relationship('Character')
+
 class Character(Base):
     __tablename__ = 'characters'
     id          = Column(Integer, primary_key=True)
@@ -37,3 +43,6 @@ class Character(Base):
     def _indirect_name(self, value):
         self.name = value
     indirect_name = property(None, _indirect_name)
+
+    team_id     = Column(Integer, ForeignKey('teams.id'), nullable=True)
+    team        = relationship('Team', back_populates='characters')

@@ -24,6 +24,7 @@ class SortTest(BaseTestCase):
             'data': {
                 'id': 1,
                 'name': 'Barry',
+                'team_id': None,
             }
         })
 
@@ -34,6 +35,7 @@ class SortTest(BaseTestCase):
             'data': {
                 'id': 1,
                 'name': 'Flash',
+                'team_id': None,
             }
         })
 
@@ -44,5 +46,6 @@ class SortTest(BaseTestCase):
             'data': {
                 'id': 1,
                 'name': 'Flash',
+                'team_id': None,
             }
         })

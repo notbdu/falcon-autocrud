@@ -44,18 +44,18 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 1, 'name': 'John'},
-                {'id': 2, 'name': 'Barry'},
-                {'id': 3, 'name': 'Thea'},
-                {'id': 4, 'name': 'Laurel'},
-                {'id': 5, 'name': 'Felicity'},
-                {'id': 6, 'name': 'Oliver'},
-                {'id': 7, 'name': 'Roy'},
-                {'id': 8, 'name': 'Iris'},
-                {'id': 9, 'name': 'Caitlin'},
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 12, 'name': 'Cisco'},
+                {'id': 1, 'name': 'John', 'team_id': None},
+                {'id': 2, 'name': 'Barry', 'team_id': None},
+                {'id': 3, 'name': 'Thea', 'team_id': None},
+                {'id': 4, 'name': 'Laurel', 'team_id': None},
+                {'id': 5, 'name': 'Felicity', 'team_id': None},
+                {'id': 6, 'name': 'Oliver', 'team_id': None},
+                {'id': 7, 'name': 'Roy', 'team_id': None},
+                {'id': 8, 'name': 'Iris', 'team_id': None},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
             ]
         })
 
@@ -63,18 +63,18 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/default-sort-characters', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 2, 'name': 'Barry'},
-                {'id': 9, 'name': 'Caitlin'},
-                {'id': 12, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 5, 'name': 'Felicity'},
-                {'id': 8, 'name': 'Iris'},
-                {'id': 1, 'name': 'John'},
-                {'id': 4, 'name': 'Laurel'},
-                {'id': 6, 'name': 'Oliver'},
-                {'id': 7, 'name': 'Roy'},
-                {'id': 3, 'name': 'Thea'},
+                {'id': 2, 'name': 'Barry', 'team_id': None},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 5, 'name': 'Felicity', 'team_id': None},
+                {'id': 8, 'name': 'Iris', 'team_id': None},
+                {'id': 1, 'name': 'John', 'team_id': None},
+                {'id': 4, 'name': 'Laurel', 'team_id': None},
+                {'id': 6, 'name': 'Oliver', 'team_id': None},
+                {'id': 7, 'name': 'Roy', 'team_id': None},
+                {'id': 3, 'name': 'Thea', 'team_id': None},
             ]
         })
 
@@ -86,18 +86,18 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', query_string='__sort=-name,id', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 3, 'name': 'Thea'},
-                {'id': 7, 'name': 'Roy'},
-                {'id': 6, 'name': 'Oliver'},
-                {'id': 4, 'name': 'Laurel'},
-                {'id': 1, 'name': 'John'},
-                {'id': 8, 'name': 'Iris'},
-                {'id': 5, 'name': 'Felicity'},
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 12, 'name': 'Cisco'},
-                {'id': 9, 'name': 'Caitlin'},
-                {'id': 2, 'name': 'Barry'},
+                {'id': 3, 'name': 'Thea', 'team_id': None},
+                {'id': 7, 'name': 'Roy', 'team_id': None},
+                {'id': 6, 'name': 'Oliver', 'team_id': None},
+                {'id': 4, 'name': 'Laurel', 'team_id': None},
+                {'id': 1, 'name': 'John', 'team_id': None},
+                {'id': 8, 'name': 'Iris', 'team_id': None},
+                {'id': 5, 'name': 'Felicity', 'team_id': None},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
+                {'id': 2, 'name': 'Barry', 'team_id': None},
             ]
         })
 
@@ -105,36 +105,36 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', query_string='__sort=id', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 1, 'name': 'John'},
-                {'id': 2, 'name': 'Barry'},
-                {'id': 3, 'name': 'Thea'},
-                {'id': 4, 'name': 'Laurel'},
-                {'id': 5, 'name': 'Felicity'},
-                {'id': 6, 'name': 'Oliver'},
-                {'id': 7, 'name': 'Roy'},
-                {'id': 8, 'name': 'Iris'},
-                {'id': 9, 'name': 'Caitlin'},
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 12, 'name': 'Cisco'},
+                {'id': 1, 'name': 'John', 'team_id': None},
+                {'id': 2, 'name': 'Barry', 'team_id': None},
+                {'id': 3, 'name': 'Thea', 'team_id': None},
+                {'id': 4, 'name': 'Laurel', 'team_id': None},
+                {'id': 5, 'name': 'Felicity', 'team_id': None},
+                {'id': 6, 'name': 'Oliver', 'team_id': None},
+                {'id': 7, 'name': 'Roy', 'team_id': None},
+                {'id': 8, 'name': 'Iris', 'team_id': None},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
             ]
         })
 
         response, = self.simulate_request('/characters', query_string='__sort=-id', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 12, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 9, 'name': 'Caitlin'},
-                {'id': 8, 'name': 'Iris'},
-                {'id': 7, 'name': 'Roy'},
-                {'id': 6, 'name': 'Oliver'},
-                {'id': 5, 'name': 'Felicity'},
-                {'id': 4, 'name': 'Laurel'},
-                {'id': 3, 'name': 'Thea'},
-                {'id': 2, 'name': 'Barry'},
-                {'id': 1, 'name': 'John'},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
+                {'id': 8, 'name': 'Iris', 'team_id': None},
+                {'id': 7, 'name': 'Roy', 'team_id': None},
+                {'id': 6, 'name': 'Oliver', 'team_id': None},
+                {'id': 5, 'name': 'Felicity', 'team_id': None},
+                {'id': 4, 'name': 'Laurel', 'team_id': None},
+                {'id': 3, 'name': 'Thea', 'team_id': None},
+                {'id': 2, 'name': 'Barry', 'team_id': None},
+                {'id': 1, 'name': 'John', 'team_id': None},
             ]
         })
 
@@ -142,18 +142,18 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/default-sort-characters', query_string='__sort=-name,id', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 3, 'name': 'Thea'},
-                {'id': 7, 'name': 'Roy'},
-                {'id': 6, 'name': 'Oliver'},
-                {'id': 4, 'name': 'Laurel'},
-                {'id': 1, 'name': 'John'},
-                {'id': 8, 'name': 'Iris'},
-                {'id': 5, 'name': 'Felicity'},
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 12, 'name': 'Cisco'},
-                {'id': 9, 'name': 'Caitlin'},
-                {'id': 2, 'name': 'Barry'},
+                {'id': 3, 'name': 'Thea', 'team_id': None},
+                {'id': 7, 'name': 'Roy', 'team_id': None},
+                {'id': 6, 'name': 'Oliver', 'team_id': None},
+                {'id': 4, 'name': 'Laurel', 'team_id': None},
+                {'id': 1, 'name': 'John', 'team_id': None},
+                {'id': 8, 'name': 'Iris', 'team_id': None},
+                {'id': 5, 'name': 'Felicity', 'team_id': None},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
+                {'id': 2, 'name': 'Barry', 'team_id': None},
             ]
         })
 
@@ -165,11 +165,11 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=0&__limit=5', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 3, 'name': 'Thea'},
-                {'id': 7, 'name': 'Roy'},
-                {'id': 6, 'name': 'Oliver'},
-                {'id': 4, 'name': 'Laurel'},
-                {'id': 1, 'name': 'John'},
+                {'id': 3, 'name': 'Thea', 'team_id': None},
+                {'id': 7, 'name': 'Roy', 'team_id': None},
+                {'id': 6, 'name': 'Oliver', 'team_id': None},
+                {'id': 4, 'name': 'Laurel', 'team_id': None},
+                {'id': 1, 'name': 'John', 'team_id': None},
             ],
             'meta': {
                 'offset':   0,
@@ -180,11 +180,11 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=5&__limit=5', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 8, 'name': 'Iris'},
-                {'id': 5, 'name': 'Felicity'},
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 12, 'name': 'Cisco'},
+                {'id': 8, 'name': 'Iris', 'team_id': None},
+                {'id': 5, 'name': 'Felicity', 'team_id': None},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
             ],
             'meta': {
                 'offset':   5,
@@ -195,8 +195,8 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=10&__limit=5', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 9, 'name': 'Caitlin'},
-                {'id': 2, 'name': 'Barry'},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
+                {'id': 2, 'name': 'Barry', 'team_id': None},
             ],
             'meta': {
                 'offset':   10,
@@ -209,14 +209,14 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=3&__limit=8', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 4, 'name': 'Laurel'},
-                {'id': 1, 'name': 'John'},
-                {'id': 8, 'name': 'Iris'},
-                {'id': 5, 'name': 'Felicity'},
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 12, 'name': 'Cisco'},
-                {'id': 9, 'name': 'Caitlin'},
+                {'id': 4, 'name': 'Laurel', 'team_id': None},
+                {'id': 1, 'name': 'John', 'team_id': None},
+                {'id': 8, 'name': 'Iris', 'team_id': None},
+                {'id': 5, 'name': 'Felicity', 'team_id': None},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
             ],
             'meta': {
                 'offset':   3,
@@ -227,9 +227,9 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=7&__limit=3', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 12, 'name': 'Cisco'},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
             ],
             'meta': {
                 'offset':   7,
@@ -240,11 +240,11 @@ class SortTest(BaseTestCase):
         response, = self.simulate_request('/characters', query_string='__sort=-name,id&__offset=7', method='GET', headers={'Accept': 'application/json'})
         self.assertOK(response, {
             'data': [
-                {'id': 10, 'name': 'Cisco'},
-                {'id': 11, 'name': 'Cisco'},
-                {'id': 12, 'name': 'Cisco'},
-                {'id': 9, 'name': 'Caitlin'},
-                {'id': 2, 'name': 'Barry'},
+                {'id': 10, 'name': 'Cisco', 'team_id': None},
+                {'id': 11, 'name': 'Cisco', 'team_id': None},
+                {'id': 12, 'name': 'Cisco', 'team_id': None},
+                {'id': 9, 'name': 'Caitlin', 'team_id': None},
+                {'id': 2, 'name': 'Barry', 'team_id': None},
             ],
             'meta': {
                 'offset':   7,

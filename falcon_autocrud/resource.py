@@ -185,9 +185,9 @@ class CollectionResource(BaseResource):
                     relationship = mapper.relationships[key]
                     if relationship.uselist:
                         for entity in value:
-                            deserialized[1][key] = [self.deserialize(relationship.table, {}, entity, False)[0] for entity in value]
+                            deserialized[1][key] = [self.deserialize(relationship.mapper.entity, {}, entity, False)[0] for entity in value]
                     else:
-                        deserialized[1][key] = self.deserialize(relationship.table, {}, value, False)[0]
+                        deserialized[1][key] = self.deserialize(relationship.mapper.entity, {}, value, False)[0]
                     continue
                 except KeyError:
                     # Assume programmer has done their job of filtering out invalid

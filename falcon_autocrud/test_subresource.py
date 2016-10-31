@@ -1,7 +1,7 @@
 import json
 
 from .test_base import BaseTestCase
-from .test_fixtures import Company, Employee
+from .test_fixtures import Company, Employee, Team, Character
 
 from .resource import CollectionResource
 
@@ -20,12 +20,17 @@ class EmployeeCollectionResource(NonflatCollectionResource):
     model = Employee
     methods = ['POST']
 
+class TeamCollectionResource(NonflatCollectionResource):
+    model = Team
+    methods = ['POST']
+
 
 class SubresourceTest(BaseTestCase):
     def create_test_resources(self):
         self.app.add_route('/flat-companies', FlatCompanyCollectionResource(self.db_engine))
         self.app.add_route('/companies', CompanyCollectionResource(self.db_engine))
         self.app.add_route('/employees', EmployeeCollectionResource(self.db_engine))
+        self.app.add_route('/teams', TeamCollectionResource(self.db_engine))
 
     def test_default_no_subresources(self):
         post = {
@@ -124,3 +129,30 @@ class SubresourceTest(BaseTestCase):
         self.assertTrue(company is not None)
         self.assertEqual(company.name, 'BigCorp')
         self.assertEqual([employee.name for employee in company.employees], ['Alice'])
+
+    def test_subresource_with_property(self):
+        post = {
+            'name':         'Team Arrow',
+            'characters':    [
+                {
+                    'indirect_name':    'Oliver',
+                    'joined':           '2005-01-01T00:00:00Z'
+                },
+            ]
+        }
+        response, = self.simulate_request('/teams', method='POST', body=json.dumps(post), headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
+        self.assertCreated(response, {
+            'data': {
+                'id': 1,
+                'name': 'Team Arrow',
+            }
+        })
+
+        team = self.db_session.query(Team).filter(Team.id == 1).one_or_none()
+        self.assertTrue(team is not None)
+        self.assertEqual(team.name, 'Team Arrow')
+
+        self.assertEqual([character.name for character in sorted(team.characters, key=lambda emp: emp.name)], ['Oliver'])
+
+        characters = self.db_session.query(Character).filter(Character.team_id == 1).order_by(Character.name)
+        self.assertEqual([character.name for character in characters], ['Oliver'])
