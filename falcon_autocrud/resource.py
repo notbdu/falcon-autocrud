@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import date, datetime, time
 from decimal import Decimal
 import falcon
 import falcon.errors
@@ -99,6 +99,8 @@ class BaseResource(object):
                 return value.hex
             if isinstance(value, datetime):
                 return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            elif isinstance(value, date):
+                return value.strftime('%Y-%m-%d')
             elif isinstance(value, time):
                 return value.isoformat()
             elif isinstance(value, Decimal):
@@ -194,6 +196,8 @@ class CollectionResource(BaseResource):
                     continue
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
+            elif isinstance(column.type, sqlalchemy.sql.sqltypes.Date):
+                attributes[key] = datetime.strptime(value, '%Y-%m-%d').date() if value is not None else None
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):
                 if value is not None:
                     hour, minute, second = value.split(':')
@@ -463,6 +467,8 @@ class SingleResource(BaseResource):
                 continue
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
+            elif isinstance(column.type, sqlalchemy.sql.sqltypes.Date):
+                attributes[key] = datetime.strptime(value, '%Y-%m-%d').date() if value is not None else None
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):
                 if value is not None:
                     hour, minute, second = value.split(':')
