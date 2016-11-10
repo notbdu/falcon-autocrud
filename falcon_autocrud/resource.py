@@ -93,12 +93,16 @@ class BaseResource(object):
         return resources
 
     def serialize(self, resource, response_fields=None, geometry_axes=None):
-        attrs = inspect(resource.__class__).attrs
+        attrs           = inspect(resource.__class__).attrs
+        naive_datetimes = getattr(self, 'naive_datetimes', [])
         def _serialize_value(name, value):
             if isinstance(value, uuid.UUID):
                 return value.hex
             if isinstance(value, datetime):
-                return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+                if name in naive_datetimes:
+                    return value.strftime('%Y-%m-%dT%H:%M:%S')
+                else:
+                    return value.strftime('%Y-%m-%dT%H:%M:%SZ')
             elif isinstance(value, date):
                 return value.strftime('%Y-%m-%d')
             elif isinstance(value, time):
@@ -156,8 +160,9 @@ class CollectionResource(BaseResource):
     Provides CRUD facilities for a resource collection.
     """
     def deserialize(self, model, path_data, body_data, allow_recursion=False):
-        mapper      = inspect(model)
-        attributes  = {}
+        mapper          = inspect(model)
+        attributes      = {}
+        naive_datetimes = getattr(self, 'naive_datetimes', [])
 
         for key, value in path_data.items():
             key = getattr(self, 'attr_map', {}).get(key, key)
@@ -195,7 +200,12 @@ class CollectionResource(BaseResource):
                     # custom purpose
                     continue
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
-                attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
+                if value is None:
+                    attributes[key] = None
+                elif key in naive_datetimes:
+                    attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
+                else:
+                    attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Date):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%d').date() if value is not None else None
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):
@@ -450,8 +460,9 @@ class SingleResource(BaseResource):
     Provides CRUD facilities for a single resource.
     """
     def deserialize(self, data):
-        mapper      = inspect(self.model)
-        attributes  = {}
+        mapper          = inspect(self.model)
+        attributes      = {}
+        naive_datetimes = getattr(self, 'naive_datetimes', [])
 
         for key, value in data.items():
             if isinstance(getattr(self.model, key, None), property):
@@ -466,7 +477,12 @@ class SingleResource(BaseResource):
                 # custom purpose
                 continue
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
-                attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ') if value is not None else None
+                if value is None:
+                    attributes[key] = None
+                elif key in naive_datetimes:
+                    attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
+                else:
+                    attributes[key] = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Date):
                 attributes[key] = datetime.strptime(value, '%Y-%m-%d').date() if value is not None else None
             elif isinstance(column.type, sqlalchemy.sql.sqltypes.Time):

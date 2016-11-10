@@ -499,3 +499,25 @@ cat patches.json | http PATCH http://localhost/employees
 ```
 
 All the operations done in a single PATCH are performed within a transaction.
+
+### Naive datetimes
+
+Normally a datetime is assumed to be in UTC, so they are expected to be in the
+format 'YYYY-mm-ddTHH:MM:SSZ', and are also output like that.
+
+Sometimes (not often!) you need to store a "naive" datetime, where time zone is
+not relevant (e.g. to store the datetime of a nationwide public holiday, where
+the time zone is not relevant, and the "real" date/time is simply in the local
+time zone, whatever that might be - i.e. the client can treat is as being in
+their own localtime.
+
+For cases such as this, simply list the field among the naive datetimes like so:
+
+```
+class PublicHolidayCollectionResource(CollectionResource):
+    model = PublicHoliday
+    naive_datetimes = ['start', 'end']
+```
+
+These fields will then be parsed and returned in the format
+'YYYY-mm-ddTHH:MM:SS', i.e. without the 'Z' suffix.
