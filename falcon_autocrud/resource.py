@@ -537,8 +537,17 @@ class SingleResource(BaseResource):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
             resp.status = falcon.HTTP_OK
+            primary_key, = [
+                attr
+                for attr in inspect(resource.__class__).attrs.values()
+                if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
+            ]
             result = {
-                'data': self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
+                'data': {
+                    'id':           getattr(resource, primary_key.key),
+                    'type':         resource.__tablename__,
+                    'attributes':   self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
+                }
             }
             if '__included' in req.params:
                 allowed_included = getattr(self, 'allowed_included', {})
