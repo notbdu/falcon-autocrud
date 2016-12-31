@@ -304,7 +304,7 @@ class CollectionResource(BaseResource):
                     'id':           getattr(resource, primary_key.key),
                     'type':         resource.__tablename__,
                     'attributes':   self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
-                })
+                }
                 if '__included' in req.params:
                     allowed_included = getattr(self, 'allowed_included', {})
                     instance['included'] = []
