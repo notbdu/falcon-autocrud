@@ -292,10 +292,42 @@ class CollectionResource(BaseResource):
 
             resp.status = falcon.HTTP_OK
             result = {
-                'data': [
-                    self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})) for resource in resources
-                ],
+                'data': [],
             }
+            for resource in resources:
+                primary_key, = [
+                    attr
+                    for attr in inspect(resource.__class__).attrs.values()
+                    if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
+                ]
+                instance = {
+                    'id':           getattr(resource, primary_key.key),
+                    'type':         resource.__tablename__,
+                    'attributes':   self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
+                })
+                if '__included' in req.params:
+                    allowed_included = getattr(self, 'allowed_included', {})
+                    instance['included'] = []
+                    for included in req.get_param_as_list('__included'):
+                        if included not in allowed_included:
+                            raise falcon.errors.HTTPBadRequest('Invalid parameter', 'The "__included" parameter includes invalid entities')
+                        included_resources  = allowed_included[included]['link'](resource)
+                        response_fields     = allowed_included[included].get('response_fields')
+                        geometry_axes       = allowed_included[included].get('geometry_axes')
+
+                        for included_resource in included_resources:
+                            primary_key, = [
+                                attr
+                                for attr in inspect(included_resource.__class__).attrs.values()
+                                if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
+                            ]
+                            instance['included'].append({
+                                'id':           getattr(resource, primary_key.key),
+                                'type':         included,
+                                'attributes':   self.serialize(included_resource, response_fields, geometry_axes),
+                            })
+                result['data'].append(instance)
+
             if '__offset' in req.params or '__limit' in req.params:
                 result['meta'] = {'total': count}
                 if '__offset' in req.params:
