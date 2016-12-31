@@ -542,7 +542,7 @@ class SingleResource(BaseResource):
             }
             if '__included' in req.params:
                 allowed_included = getattr(self, 'allowed_included', {})
-                result['included'] = []
+                result['data']['included'] = []
                 for included in req.get_param_as_list('__included'):
                     if included not in allowed_included:
                         raise falcon.errors.HTTPBadRequest('Invalid parameter', 'The "__included" parameter includes invalid entities')
@@ -556,7 +556,7 @@ class SingleResource(BaseResource):
                             for attr in inspect(included_resource.__class__).attrs.values()
                             if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
                         ]
-                        result['included'].append({
+                        result['data']['included'].append({
                             'id':           getattr(resource, primary_key.key),
                             'type':         included,
                             'attributes':   self.serialize(included_resource, response_fields, geometry_axes),
