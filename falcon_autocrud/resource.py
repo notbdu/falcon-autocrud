@@ -16,17 +16,43 @@ import sys
 
 from .db_session import session_scope
 
+
 def identify(req, resp, resource, params):
     identifiers = getattr(resource, '__identifiers__', {})
     if req.method in identifiers:
         Identifier = identifiers[req.method]
         Identifier().identify(req, resp, resource, params)
 
+
 def authorize(req, resp, resource, params):
     authorizers = getattr(resource, '__authorizers__', {})
     if req.method in authorizers:
         Authorizer = authorizers[req.method]
         Authorizer().authorize(req, resp, resource, params)
+
+
+def update_resource(resource, attributes):
+    '''Update `resource` w/ `attributes`.'''
+    for key, value in attributes.items():
+        setattr(resource, key, value)
+
+
+def get_pk(attributes):
+    '''Get pk (id) from a dictionary of attributes or throw error.'''
+    try:
+        return int(attributes.pop('id'))
+    except KeyError:
+        raise falcon.errors.HTTPBadRequest('Invalid request', 'No primary key provided for related object.')
+
+
+def identify_pk(resource_class):
+    '''Find the primary key of a resource class.'''
+    primary_key, = [
+        attr
+        for attr in inspect(resource_class).attrs.values()
+        if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
+    ]
+    return primary_key.key
 
 
 class UnsupportedGeometryType(Exception):
@@ -295,13 +321,9 @@ class CollectionResource(BaseResource):
                 'data': [],
             }
             for resource in resources:
-                primary_key, = [
-                    attr
-                    for attr in inspect(resource.__class__).attrs.values()
-                    if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
-                ]
+                primary_key = identify_pk(resource.__class__)
                 instance = {
-                    'id':           getattr(resource, primary_key.key),
+                    'id':           getattr(resource, primary_key),
                     'type':         resource.__tablename__,
                     'attributes':   self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
                 }
@@ -316,13 +338,9 @@ class CollectionResource(BaseResource):
                         geometry_axes       = allowed_included[included].get('geometry_axes')
 
                         for included_resource in included_resources:
-                            primary_key, = [
-                                attr
-                                for attr in inspect(included_resource.__class__).attrs.values()
-                                if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
-                            ]
+                            primary_key = identify_pk(included_resource.__class__)
                             instance['included'].append({
-                                'id':           getattr(resource, primary_key.key),
+                                'id':           getattr(resource, primary_key),
                                 'type':         included,
                                 'attributes':   self.serialize(included_resource, response_fields, geometry_axes),
                             })
@@ -491,12 +509,20 @@ class SingleResource(BaseResource):
     """
     Provides CRUD facilities for a single resource.
     """
-    def deserialize(self, data):
-        mapper          = inspect(self.model)
+    def deserialize(self, data, allow_recursion=False, model=None):
+        if model is None:
+            model = self.model
+        mapper          = inspect(model)
         attributes      = {}
         naive_datetimes = getattr(self, 'naive_datetimes', [])
 
+        deserialized = [attributes, {}]
+
         for key, value in data.items():
+            # Explicitly allow deserialization of an ID field
+            if key == "id":
+                attributes[key] = value
+                continue
             if isinstance(getattr(self.model, key, None), property):
                 # Value is set using a function, so we cannot tell what type it will be
                 attributes[key] = value
@@ -504,10 +530,24 @@ class SingleResource(BaseResource):
             try:
                 column = mapper.columns[key]
             except KeyError:
-                # Assume programmer has done their job of filtering out invalid
-                # columns, and that they are going to use this field for some
-                # custom purpose
-                continue
+                if not allow_recursion:
+                    # Assume programmer has done their job of filtering out invalid
+                    # columns, and that they are going to use this field for some
+                    # custom purpose
+                    continue
+                try:
+                    relationship = mapper.relationships[key]
+                    if relationship.uselist:
+                        for entity in value:
+                            deserialized[1][key] = [self.deserialize(entity, False, relationship.mapper.entity)[0] for entity in value]
+                    else:
+                        deserialized[1][key] = self.deserialize(value, False, relationship.mapper.entity)[0]
+                    continue
+                except KeyError:
+                    # Assume programmer has done their job of filtering out invalid
+                    # columns, and that they are going to use this field for some
+                    # custom purpose
+                    continue
             if isinstance(column.type, sqlalchemy.sql.sqltypes.DateTime):
                 if value is None:
                     attributes[key] = None
@@ -541,7 +581,7 @@ class SingleResource(BaseResource):
             else:
                 attributes[key] = value
 
-        return attributes
+        return deserialized
 
     def get_filter(self, req, resp, query, *args, **kwargs):
         return query
@@ -569,14 +609,10 @@ class SingleResource(BaseResource):
                 raise falcon.errors.HTTPInternalServerError('Internal Server Error', 'An internal server error occurred')
 
             resp.status = falcon.HTTP_OK
-            primary_key, = [
-                attr
-                for attr in inspect(resource.__class__).attrs.values()
-                if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
-            ]
+            primary_key = identify_pk(resource.__class__)
             result = {
                 'data': {
-                    'id':           getattr(resource, primary_key.key),
+                    'id':           getattr(resource, primary_key),
                     'type':         resource.__tablename__,
                     'attributes':   self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
                 }
@@ -592,13 +628,9 @@ class SingleResource(BaseResource):
                     geometry_axes       = allowed_included[included].get('geometry_axes')
 
                     for included_resource in included_resources:
-                        primary_key, = [
-                            attr
-                            for attr in inspect(included_resource.__class__).attrs.values()
-                            if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
-                        ]
+                        primary_key = identify_pk(included_resource.__class__)
                         result['data']['included'].append({
-                            'id':           getattr(resource, primary_key.key),
+                            'id':           getattr(resource, primary_key),
                             'type':         included,
                             'attributes':   self.serialize(included_resource, response_fields, geometry_axes),
                         })
@@ -767,12 +799,11 @@ class SingleResource(BaseResource):
             except sqlalchemy.orm.exc.NoResultFound:
                 raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
 
-            attributes = self.deserialize(req.context['doc'])
+            attributes, linked = self.deserialize(req.context['doc'], allow_recursion=getattr(self, 'allow_subresources', False))
 
             self.apply_default_attributes('patch_defaults', req, resp, attributes)
 
-            for key, value in attributes.items():
-                setattr(resource, key, value)
+            update_resource(resource, attributes)
 
             self.modify_patch(req, resp, resource, *args, **kwargs)
 
@@ -781,6 +812,31 @@ class SingleResource(BaseResource):
                 self.before_patch(req, resp, db_session, resource, *args, **kwargs)
 
             db_session.add(resource)
+            # Patch related
+            mapper = inspect(self.model)
+            # Store updated subresources to return in the response
+            updated_subresources = {}
+            for key, value in linked.items():
+                relationship = mapper.relationships[key]
+                resource_class = relationship.mapper.entity
+                subresource_pk = identify_pk(resource_class)
+                if relationship.uselist:
+                    subresources = getattr(resource, key)
+                    subresources_pks = [getattr(sr, subresource_pk) for sr in subresources]
+                    updated_subresources[key] = []
+                    for attributes in value:
+                        lookup_pk = get_pk(attributes)
+                        if lookup_pk not in subresources_pks:
+                            raise falcon.errors.HTTPBadRequest('Invalid request', 'Primary key not found in related resources.')
+                        update_resource(subresource, attributes)
+                        updated_subresources[key].append(subresource)
+                else:
+                    subresource = getattr(resource, key)
+                    lookup_pk = get_pk(value)
+                    if lookup_pk != getattr(subresource, subresource_pk):
+                        raise falcon.errors.HTTPBadRequest('Invalid request', 'Primary key does not match related resource.')
+                    update_resource(subresource, value)
+                    updated_subresources[key] = subresource
             try:
                 db_session.commit()
             except sqlalchemy.exc.IntegrityError as err:
@@ -804,6 +860,15 @@ class SingleResource(BaseResource):
             req.context['result'] = {
                 'data': self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
             }
+            for key, value in updated_subresources.items():
+                if isinstance(value, list):
+                    req.context['result']['data'][key] = [
+                        self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {}))
+                        for resource in
+                        value
+                    ]
+                else:
+                    req.context['result']['data'][key] = self.serialize(value, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {}))
 
             after_patch = getattr(self, 'after_patch', None)
             if after_patch is not None:
