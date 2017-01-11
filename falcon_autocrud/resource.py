@@ -38,9 +38,9 @@ def update_resource(resource, attributes):
 
 
 def get_pk(attributes):
-    '''Get pk (id) from a dictionary of attributes or throw error.'''
+    '''Get pk from a dictionary of attributes or throw error.'''
     try:
-        return int(attributes.pop('id'))
+        return int(attributes.pop('pk'))
     except KeyError:
         raise falcon.errors.HTTPBadRequest('Invalid request', 'No primary key provided for related object.')
 
@@ -53,6 +53,35 @@ def identify_pk(resource_class):
         if isinstance(attr, ColumnProperty) and attr.columns[0].primary_key
     ]
     return primary_key.key
+
+
+def add_included(instance, req, res, data):
+    '''Add included objects to a data dictionary.'''
+    if '__included' in req.params:
+        allowed_included = getattr(instance, 'allowed_included', [])
+        for included in req.get_param_as_list('__included'):
+            if included not in allowed_included:
+                raise falcon.errors.HTTPBadRequest('Invalid parameter', 'The "__included" parameter includes invalid entities')
+            # Get secondary/tertiary objects
+            if '.' in included:
+                attrs = included.split('.')
+                included_resources = res
+                for attr in attrs:
+                    included_resources = getattr(included_resources, attr)
+            else:
+                included_resources = getattr(res, included)
+
+            # Store the related resource underneath the table name as a key
+            if isinstance(included_resources, list):
+                data['attributes'][included_resource.__tablename__] = []
+                for included_resource in included_resources:
+                    primary_key = identify_pk(included_resource.__class__)
+                    attributes = instance.serialize(included_resource, getattr(included_resource, 'response_fields', None), getattr(included_resource, 'geometry_axes', {}))
+                    data['attributes'][included_resource.__tablename__].append(attributes)
+            elif included_resources is not None:
+                primary_key = identify_pk(included_resources.__class__)
+                attributes = instance.serialize(included_resources, getattr(included_resources, 'response_fields', None), getattr(included_resources, 'geometry_axes', {}))
+                data['attributes'][included_resources.__tablename__] = attributes
 
 
 class UnsupportedGeometryType(Exception):
@@ -97,15 +126,17 @@ class BaseResource(object):
                 raise falcon.errors.HTTPBadRequest('Invalid attribute', 'An attribute provided for filtering is invalid')
             if comparison == '=':
                 resources = resources.filter(attr == value)
+            elif comparison == 'in':
+                resources = resources.filter(attr.in_(value))
             elif comparison == 'null':
                 if value != '0':
                     resources = resources.filter(attr.is_(None))
                 else:
                     resources = resources.filter(attr.isnot(None))
             elif comparison == 'startswith':
-                resources = resources.filter(attr.like('{0}%'.format(value)))
+                resources = resources.filter(attr.ilike('{0}%'.format(value)))
             elif comparison == 'contains':
-                resources = resources.filter(attr.like('%{0}%'.format(value)))
+                resources = resources.filter(attr.ilike('%{0}%'.format(value)))
             elif comparison == 'lt':
                 resources = resources.filter(attr < value)
             elif comparison == 'lte':
@@ -323,27 +354,11 @@ class CollectionResource(BaseResource):
             for resource in resources:
                 primary_key = identify_pk(resource.__class__)
                 instance = {
-                    'id':           getattr(resource, primary_key),
+                    'pk':           getattr(resource, primary_key),
                     'type':         resource.__tablename__,
                     'attributes':   self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
                 }
-                if '__included' in req.params:
-                    allowed_included = getattr(self, 'allowed_included', {})
-                    instance['included'] = []
-                    for included in req.get_param_as_list('__included'):
-                        if included not in allowed_included:
-                            raise falcon.errors.HTTPBadRequest('Invalid parameter', 'The "__included" parameter includes invalid entities')
-                        included_resources  = allowed_included[included]['link'](resource)
-                        response_fields     = allowed_included[included].get('response_fields')
-                        geometry_axes       = allowed_included[included].get('geometry_axes')
-
-                        for included_resource in included_resources:
-                            primary_key = identify_pk(included_resource.__class__)
-                            instance['included'].append({
-                                'id':           getattr(resource, primary_key),
-                                'type':         included,
-                                'attributes':   self.serialize(included_resource, response_fields, geometry_axes),
-                            })
+                add_included(self, req, resource, instance)
                 result['data'].append(instance)
 
             if '__offset' in req.params or '__limit' in req.params:
@@ -367,7 +382,7 @@ class CollectionResource(BaseResource):
         if 'POST' not in getattr(self, 'methods', ['GET', 'POST', 'PATCH']):
             raise falcon.errors.HTTPMethodNotAllowed(getattr(self, 'methods', ['GET', 'POST', 'PATCH']))
 
-        attributes, linked = self.deserialize(self.model, kwargs, req.context['doc'] if 'doc' in req.context else None, getattr(self, 'allow_subresources', False))
+        attributes, linked = self.deserialize(self.model, kwargs, req.context['doc'] if 'doc' in req.context else None, getattr(self, 'allow_subresources', True))
 
         with session_scope(self.db_engine, sessionmaker_=self.sessionmaker, **self.sessionmaker_kwargs) as db_session:
             self.apply_default_attributes('post_defaults', req, resp, attributes)
@@ -379,18 +394,50 @@ class CollectionResource(BaseResource):
                 self.before_post(req, resp, db_session, resource, *args, **kwargs)
 
             db_session.add(resource)
-            mapper = inspect(self.model)
-            for key, value in linked.items():
-                relationship = mapper.relationships[key]
-                resource_class = relationship.mapper.entity
-                if relationship.uselist:
-                    for attributes in value:
-                        subresource = resource_class(**attributes)
-                        getattr(resource, key).append(subresource)
-                else:
-                    subresource = resource_class(**value)
-                    setattr(resource, key, subresource)
             try:
+                # Begin a nested transaction to create subresources
+                db_session.begin_nested()
+
+                # Add related objects now
+                mapper = inspect(self.model)
+                subresources_created = []
+                for key, value in linked.items():
+                    relationship = mapper.relationships[key]
+                    resource_class = relationship.mapper.entity
+                    if relationship.uselist:
+                        for attributes in value:
+                            subresource = resource_class(**attributes)
+                            db_session.add(subresource)
+                            subresources_created.append((key, 'onetomany', subresource))
+                            getattr(resource, key).append(subresource)
+                    else:
+                        subresource = resource_class(**value)
+                        db_session.add(subresource)
+                        subresources_created.append((key, 'onetoone', subresource))
+                        setattr(resource, key, subresource)
+
+                # Inner commit (subresources)
+                db_session.commit()
+
+                # Now that subresources have ids, assign the correct reference ids
+                for _, relationship_type, subresource in subresources_created:
+                    if relationship_type == 'onetoone':
+                        # Resource should have a referencee to subresource
+                        subresource_id = subresource.__tablename__ + '_id'
+                        if hasattr(resource, subresource_id):
+                            setattr(resource, subresource_id, getattr(subresource, subresource_id))
+                        # Subresource MAY have a reference to resource (Less likely)
+                        resource_id = resource.__tablename__ + '_id'
+                        if hasattr(subresource, resource_id):
+                            setattr(subresource, resource_id, getattr(resource, resource_id))
+                    elif relationship_type == 'onetomany':
+                        # Subresource should have a reference to resource
+                        resource_id = resource.__tablename__ + '_id'
+                        if hasattr(subresource, resource_id):
+                            setattr(subresource, resource_id, getattr(resource, resource_id))
+                        # TODO: Maybe resource has a list of subresource ids?
+
+                # Outer commit (resource)
                 db_session.commit()
             except sqlalchemy.exc.IntegrityError as err:
                 # Cases such as unallowed NULL value should have been checked
@@ -413,6 +460,9 @@ class CollectionResource(BaseResource):
             req.context['result'] = {
                 'data': self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
             }
+            # Add subresources created to response
+            for relationship_key, relationship_type, subresource in subresources_created:
+                req.context['result']['data'][relationship_key] = self.serialize(subresource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {}))
 
             after_post = getattr(self, 'after_post', None)
             if after_post is not None:
@@ -505,6 +555,7 @@ class CollectionResource(BaseResource):
         if after_patch is not None:
             after_patch(req, resp, *args, **kwargs)
 
+
 class SingleResource(BaseResource):
     """
     Provides CRUD facilities for a single resource.
@@ -519,8 +570,8 @@ class SingleResource(BaseResource):
         deserialized = [attributes, {}]
 
         for key, value in data.items():
-            # Explicitly allow deserialization of an ID field
-            if key == "id":
+            # Explicitly allow deserialization of an PK (primary key) field
+            if key == "pk":
                 attributes[key] = value
                 continue
             if isinstance(getattr(self.model, key, None), property):
@@ -612,29 +663,12 @@ class SingleResource(BaseResource):
             primary_key = identify_pk(resource.__class__)
             result = {
                 'data': {
-                    'id':           getattr(resource, primary_key),
+                    'pk':           getattr(resource, primary_key),
                     'type':         resource.__tablename__,
                     'attributes':   self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
                 }
             }
-            if '__included' in req.params:
-                allowed_included = getattr(self, 'allowed_included', {})
-                result['data']['included'] = []
-                for included in req.get_param_as_list('__included'):
-                    if included not in allowed_included:
-                        raise falcon.errors.HTTPBadRequest('Invalid parameter', 'The "__included" parameter includes invalid entities')
-                    included_resources  = allowed_included[included]['link'](resource)
-                    response_fields     = allowed_included[included].get('response_fields')
-                    geometry_axes       = allowed_included[included].get('geometry_axes')
-
-                    for included_resource in included_resources:
-                        primary_key = identify_pk(included_resource.__class__)
-                        result['data']['included'].append({
-                            'id':           getattr(resource, primary_key),
-                            'type':         included,
-                            'attributes':   self.serialize(included_resource, response_fields, geometry_axes),
-                        })
-
+            add_included(self, req, resource, result['data'])
             req.context['result'] = result
 
             after_get = getattr(self, 'after_get', None)
@@ -699,7 +733,9 @@ class SingleResource(BaseResource):
                     raise
 
             resp.status = falcon.HTTP_OK
-            req.context['result'] = {}
+            req.context['result'] = {
+                'data': self.serialize(resource, getattr(self, 'response_fields', None), getattr(self, 'geometry_axes', {})),
+            }
 
             after_delete = getattr(self, 'after_delete', None)
             if after_delete is not None:
@@ -799,7 +835,7 @@ class SingleResource(BaseResource):
             except sqlalchemy.orm.exc.NoResultFound:
                 raise falcon.errors.HTTPConflict('Conflict', 'Resource found but conditions violated')
 
-            attributes, linked = self.deserialize(req.context['doc'], allow_recursion=getattr(self, 'allow_subresources', False))
+            attributes, linked = self.deserialize(req.context['doc'], allow_recursion=getattr(self, 'allow_subresources', True))
 
             self.apply_default_attributes('patch_defaults', req, resp, attributes)
 
@@ -832,6 +868,8 @@ class SingleResource(BaseResource):
                         updated_subresources[key].append(subresource)
                 else:
                     subresource = getattr(resource, key)
+                    if subresource is None:
+                        raise falcon.errors.HTTPBadRequest('Invalid request', 'Related resource does not exist.')
                     lookup_pk = get_pk(value)
                     if lookup_pk != getattr(subresource, subresource_pk):
                         raise falcon.errors.HTTPBadRequest('Invalid request', 'Primary key does not match related resource.')
